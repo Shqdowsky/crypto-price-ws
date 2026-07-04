@@ -1,0 +1,41 @@
+{
+  "name": "crypto-ws-sim",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:server": "tsx watch src/server.ts",
+    "dev:client": "tsx watch src/client.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shqdowsky/System-Monitor-io-ts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Shqdowsky/System-Monitor-io-ts/issues"
+  },
+  "homepage": "https://github.com/Shqdowsky/System-Monitor-io-ts#readme",
+  "dependencies": {
+    "@types/node": "^25.9.3",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0",
+    "readline": "^1.3.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0"
+  }
+}
