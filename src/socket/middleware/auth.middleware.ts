@@ -5,7 +5,9 @@ import type { AppJwtPayload } from "../../shared/types/auth.js";
 import { findUserById } from "../../shared/queries.js";
 
 export async  function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): Promise<void> {
-    const token = socket.handshake.auth?.token;
+    const token = 
+        socket.handshake.auth?.token ??
+        socket.handshake.query?.token;
     if(!token){
         return next(new Error("Authentication token missing"));
     }
