@@ -99,6 +99,7 @@ DB_NAME=crypto_ws
 DB_USER=postgres
 DB_PASSWORD=your_db_password
 ```
+### Console client 
 
 Available commands once connected:
 
