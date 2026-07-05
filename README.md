@@ -1,5 +1,4 @@
 ﻿# crypto-price-ws
-# crypto-price-ws
 
 A real-time cryptocurrency price tracking server built with **socket.io**, **TypeScript**, and **PostgreSQL**. Simulates live token prices broadcast to subscribed clients, supports trade execution and history, includes graceful shutdown, per-socket rate limiting, and JWT authentication.
 
