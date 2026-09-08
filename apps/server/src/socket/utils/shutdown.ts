@@ -1,4 +1,4 @@
-import { SHUTDOWN } from "../../shared/constants.js"
+import { SHUTDOWN } from "@system-monitor/shared"
 import { Server } from "socket.io";
 import { Pool } from "pg";
 import http from "http";

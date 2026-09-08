@@ -1,4 +1,4 @@
-import { ROOMS, PRICE_CONFIG, type RoomName } from "../shared/constants.js";
+import { ROOMS, PRICE_CONFIG, type RoomName } from "@system-monitor/shared";
 
 interface TokenState {
     price: number;

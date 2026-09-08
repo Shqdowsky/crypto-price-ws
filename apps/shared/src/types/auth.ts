@@ -1,4 +1,3 @@
-import type { JwtPayload } from "jsonwebtoken";
 import type { PublicUser } from "./user.type.js";
 
 export interface ReqBody{
@@ -12,7 +11,7 @@ export interface AuthResult {
     user: PublicUser
 }
 
-export interface AppJwtPayload extends JwtPayload {
+export interface AppJwtPayload {
     id: string;
     username: string;
     email: string;

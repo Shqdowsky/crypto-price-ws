@@ -1,4 +1,4 @@
-import { RATE_LIMIT } from "../../shared/constants.js";
+import { RATE_LIMIT } from "@system-monitor/shared";
 
 export class TokenBucket {
     private tokens: number;

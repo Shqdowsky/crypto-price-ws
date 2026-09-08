@@ -1,10 +1,10 @@
 import pool from "../../config/db.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { AppError } from "../../shared/types/error.js";
+import { AppError } from "@system-monitor/shared";
 import { env } from "../../config/env.js";
-import type { AuthResult, AppJwtPayload } from "../../shared/types/auth.js"
-import { type IUser, type PublicUser } from "../../shared/types/user.type.js";
+import type { AuthResult, AppJwtPayload } from "@system-monitor/shared"
+import { type IUser, type PublicUser } from "@system-monitor/shared";
 
 export async function register(username: string, email: string, password: string): Promise<PublicUser>{
     const hashpass = await bcrypt.hash(password, 10);

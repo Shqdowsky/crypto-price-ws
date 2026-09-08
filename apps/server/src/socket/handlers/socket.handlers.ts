@@ -2,12 +2,12 @@ import type { Socket } from "socket.io";
 import { 
     CLIENT_EVENTS, 
     SERVER_EVENTS,
-} from "../../shared/constants.js";
+} from "@system-monitor/shared";
 import type { 
     ClientToServerEvents, 
     ServerToClientEvents, 
     SocketData 
-} from "../../shared/types/socket.types.js";
+} from "@system-monitor/shared";
 import { getPrice } from "../../market/price-store.js";
 import { checkRateLimit } from "../middleware/rate-limit.middleware.js";
 import { isValidRoom } from "../utils/room-check.js";

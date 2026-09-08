@@ -1,4 +1,4 @@
-import { VALID_ROOMS, type RoomName } from "../../shared/constants.js";
+import { VALID_ROOMS, type RoomName } from "@system-monitor/shared";
 
 
 export function isValidRoom(room: unknown): room is RoomName {

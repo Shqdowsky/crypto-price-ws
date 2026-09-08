@@ -1,8 +1,8 @@
 import { createInterface } from "readline";
 import { io, Socket } from "socket.io-client";
 import { env } from "./config/env.js";
-import { CLIENT_EVENTS, SERVER_EVENTS, ROOMS} from "./shared/constants.js";
-import type { ClientToServerEvents, ServerToClientEvents, } from "./shared/types/socket.types.js";
+import { CLIENT_EVENTS, SERVER_EVENTS, ROOMS} from "@system-monitor/shared";
+import type { ClientToServerEvents, ServerToClientEvents, } from "@system-monitor/shared";
 import { isValidRoom } from "./socket/utils/room-check.js";
 
 const BASE_URL = `http://localhost:${env.WS_PORT}`;

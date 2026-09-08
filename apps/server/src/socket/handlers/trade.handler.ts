@@ -1,10 +1,10 @@
 import type { Socket } from "socket.io";
-import { CLIENT_EVENTS, SERVER_EVENTS, VALID_ROOMS, type RoomName  } from "../../shared/constants.js";
+import { CLIENT_EVENTS, SERVER_EVENTS, VALID_ROOMS, type RoomName  } from "@system-monitor/shared";
 import type { 
     ClientToServerEvents, 
     ServerToClientEvents, 
     SocketData 
-} from "../../shared/types/socket.types.js";
+} from "@system-monitor/shared";
 import { getPrice } from "../../market/price-store.js";
 import { insertTrade, getTradesByUserId } from "../services/trade.service.js";
 import { decrementPending, getIsShuttingDown, incrementPending } from "../utils/shutdown.js";

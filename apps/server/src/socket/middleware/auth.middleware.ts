@@ -1,8 +1,18 @@
 import type {Socket} from "socket.io";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
-import type { AppJwtPayload } from "../../shared/types/auth.js";
-import { findUserById } from "../../shared/queries.js";
+import type { AppJwtPayload, PublicUser } from "@system-monitor/shared";
+import pool from "../../config/db.js";
+
+
+async function findUserById(id: string): Promise<PublicUser | null >{
+    const result = await pool.query(`
+        Select id, username, email
+        From users
+        Where id = $1
+    `, [id]);
+    return result.rows[0] ?? null
+}
 
 export async  function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): Promise<void> {
     const token = 

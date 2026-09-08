@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { register, login } from "../service/auth.service.js";
-import { AppError, isPgError, type ErrorResponse, type PgError } from "../../shared/types/error.js";
-import type { AuthResult, ReqBody } from "../../shared/types/auth.js";
+import { AppError, isPgError, type ErrorResponse, type PgError } from "@system-monitor/shared";
+import type { AuthResult, ReqBody } from "@system-monitor/shared";
 import {validate} from "../middleware/validate.js";
 import { registerSchema, loginSchema } from "../../schemas/auth.schema.js";
 
