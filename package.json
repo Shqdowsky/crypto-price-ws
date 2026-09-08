@@ -1,5 +1,5 @@
 {
-  "name": "system-monitor",
+  "name": "crypto-price-ws",
   "private": true,
   "workspaces": [
     "apps/*"

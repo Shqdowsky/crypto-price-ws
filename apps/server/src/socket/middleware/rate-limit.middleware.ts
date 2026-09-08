@@ -1,4 +1,4 @@
-import { RATE_LIMIT } from "@system-monitor/shared";
+import { RATE_LIMIT } from "@crypto-price-ws/shared";
 
 export class TokenBucket {
     private tokens: number;

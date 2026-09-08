@@ -2,12 +2,12 @@ import type { Socket } from "socket.io";
 import { 
     CLIENT_EVENTS, 
     SERVER_EVENTS,
-} from "@system-monitor/shared";
+} from "@crypto-price-ws/shared";
 import type { 
     ClientToServerEvents, 
     ServerToClientEvents, 
     SocketData 
-} from "@system-monitor/shared";
+} from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
 import { checkRateLimit } from "../middleware/rate-limit.middleware.js";
 import { isValidRoom } from "../utils/room-check.js";

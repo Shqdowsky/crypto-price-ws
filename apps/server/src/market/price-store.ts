@@ -1,4 +1,4 @@
-import { ROOMS, PRICE_CONFIG, type RoomName } from "@system-monitor/shared";
+import { ROOMS, PRICE_CONFIG, type RoomName } from "@crypto-price-ws/shared";
 
 interface TokenState {
     price: number;

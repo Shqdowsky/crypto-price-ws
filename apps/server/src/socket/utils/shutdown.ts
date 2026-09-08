@@ -1,4 +1,4 @@
-import { SHUTDOWN } from "@system-monitor/shared"
+import { SHUTDOWN } from "@crypto-price-ws/shared"
 import { Server } from "socket.io";
 import { Pool } from "pg";
 import http from "http";

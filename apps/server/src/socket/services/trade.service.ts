@@ -1,7 +1,6 @@
 import pool from "../../config/db.js";
-import type { RoomName } from "@system-monitor/shared";
-import type { TradeConfirm, TradeRow } from "@system-monitor/shared";
-import type { PublicUser } from "@system-monitor/shared";
+import type { RoomName } from "@crypto-price-ws/shared";
+import type { TradeConfirm, TradeRow } from "@crypto-price-ws/shared";
 
 interface InsertTradeParams {
     userId: string;
@@ -38,13 +37,4 @@ export async function getTradesByUserId(userId:string): Promise<TradeRow[]> {
     );
 
     return result.rows;
-}
-
-export async function findUserById(id: string): Promise<PublicUser | null >{
-    const result = await pool.query(`
-        Select id, username, email
-        From users
-        Where id = $1
-    `, [id]);
-    return result.rows[0] ?? null
 }

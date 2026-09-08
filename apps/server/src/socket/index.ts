@@ -1,4 +1,4 @@
-import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "@system-monitor/shared";
+import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "@crypto-price-ws/shared";
 import type { Socket, Server } from "socket.io";
 import { clearRateLimit } from "./middleware/rate-limit.middleware.js";
 import { registerTradeHandlers } from "./handlers/trade.handler.js";

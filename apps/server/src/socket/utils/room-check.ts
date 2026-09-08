@@ -1,4 +1,4 @@
-import { VALID_ROOMS, type RoomName } from "@system-monitor/shared";
+import { VALID_ROOMS, type RoomName } from "@crypto-price-ws/shared";
 
 
 export function isValidRoom(room: unknown): room is RoomName {
