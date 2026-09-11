@@ -3,21 +3,15 @@ import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 import type { AppJwtPayload, PublicUser } from "@crypto-price-ws/shared";
 import pool from "../../config/db.js";
+import {parseCookie} from "cookie"
 
+export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): Promise<void> {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader) return next(new Error("Not authenticated"));
 
-async function findUserById(id: string): Promise<PublicUser | null >{
-    const result = await pool.query(`
-        Select id, username, email
-        From users
-        Where id = $1
-    `, [id]);
-    return result.rows[0] ?? null
-}
+    const parsed = parseCookie(cookieHeader);
+    const token = parsed.token;
 
-export async  function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): Promise<void> {
-    const token = 
-        socket.handshake.auth?.token ??
-        socket.handshake.query?.token;
     if(!token){
         return next(new Error("Authentication token missing"));
     }

@@ -15,5 +15,7 @@ export const env = {
     DB_PASSWORD: requireEnv("DB_PASSWORD"),
     JWT_SECRET: requireEnv("JWT_SECRET"),
     WS_PORT: Number(requireEnv("WS_PORT")),
-    CLIENT_URL: requireEnv("CLIENT_URL") as string
+    CLIENT_URL: requireEnv("CLIENT_URL") as string,
+    REFRESH_TOKEN_MAX_AGE: requireEnv("REFRESH_TOKEN_MAX_AGE"),
+    ACCESS_TOKEN_MAX_AGE: requireEnv("ACCESS_TOKEN_MAX_AGE")
 }
