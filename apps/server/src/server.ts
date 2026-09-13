@@ -10,7 +10,7 @@ import { gracefulShutdown } from "./socket/utils/shutdown.js";
 import pool from "./config/db.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
-    cors: {origin: "*"}
+    cors: {origin: env.CLIENT_URL},
 });
 
 io.use(socketAuthMiddleware);

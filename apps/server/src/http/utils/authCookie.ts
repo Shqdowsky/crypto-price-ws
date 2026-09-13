@@ -1,10 +1,10 @@
 import type {   Response, CookieOptions  } from "express";
 import { generateRefreshToken, hashToken } from "./refreshToken.js";
 import pool from "../../config/db.js";
-import { uuidv4 } from "zod";
+import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
-import type { AppJwtPayload } from "@system-monitor/shared";
 import { env } from "../../config/env.js";
+import type { PublicUser } from "@system-monitor/shared";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -38,7 +38,7 @@ function clearAuthCookies(res: Response) {
   res.clearCookie("refresh_token", { ...COOKIE_OPTIONS, path: "/auth/refresh" });
 }
 
-async function issueTokens(res: Response, user: AppJwtPayload) {
+async function issueTokens(res: Response, user: PublicUser) {
   const accessToken = jwt.sign(
     user,
     process.env.JWT_SECRET as string,
@@ -46,7 +46,7 @@ async function issueTokens(res: Response, user: AppJwtPayload) {
   );
 
   const refreshToken = generateRefreshToken();
-  const familyId = uuidv4();
+  const familyId = randomUUID();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_MAX_AGE);
 
   await pool.query(

@@ -23,6 +23,7 @@
     "@system-monitor/shared": "*",
     "@types/node": "^25.9.3",
     "bcrypt": "^6.0.0",
+    "cookie": "^0.7.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "pg": "^8.21.0",
