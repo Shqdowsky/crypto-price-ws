@@ -4,13 +4,8 @@
   "workspaces": [
     "apps/*"
   ],
-  "dependencies": {
-    "cookie": "^2.0.1",
-    "crypto": "^1.0.1",
-    "react-router": "^7.18.3",
-    "socket.io-client": "^4.8.3"
-  },
   "devDependencies": {
-    "@types/cookie": "^0.6.0"
+    "@types/node": "^22.20.3",
+    "typescript": "^5.9.3"
   }
 }

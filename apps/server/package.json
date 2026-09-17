@@ -21,7 +21,7 @@
   "homepage": "https://github.com/Shqdowsky/System-Monitor-io-ts#readme",
   "dependencies": {
     "@system-monitor/shared": "*",
-    "@types/node": "^25.9.3",
+    "@types/cookie": "^0.6.0",
     "bcrypt": "^6.0.0",
     "cookie": "^0.7.2",
     "cookie-parser": "^1.4.7",
@@ -31,7 +31,6 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3",
     "zod": "^4.4.3"
   },
   "type": "module",
