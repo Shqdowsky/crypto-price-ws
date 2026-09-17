@@ -3,7 +3,8 @@ import { CLIENT_EVENTS, SERVER_EVENTS, VALID_ROOMS, type RoomName  } from "@cryp
 import type { 
     ClientToServerEvents, 
     ServerToClientEvents, 
-    SocketData 
+    SocketData, 
+    TradeRow
 } from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
 import { insertTrade, getTradesByUserId } from "../services/trade.service.js";
@@ -12,31 +13,34 @@ import { decrementPending, getIsShuttingDown, incrementPending } from "../utils/
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function registerTradeHandlers(socket: AppSocket): void {
-    socket.on(CLIENT_EVENTS.TRADE, async ({ token, side }) => {
+    socket.on(CLIENT_EVENTS.TRADE, async ({ token, side }, callback) => {
 
         if(getIsShuttingDown()){
-            socket.emit(SERVER_EVENTS.ERROR, {
-                code: "SERVER_SHUTTING_DOWN",
-                message: "Server is shutting down, please reconnect shortly",
-            });
+            callback({
+                success: false,
+                error: {
+                    code: "SERVER_SHUTTING_DOWN",
+                    message: "Server is shutting down, please reconnect shortly",
+                }
+            })
             return;
         }
 
         const user = socket.data.user;
 
         if (!VALID_ROOMS.has(token)) {
-            socket.emit(SERVER_EVENTS.ERROR, {
-                code: "INVALID_ROOM",
-                message: `Unknown token: ${token}`,
+            callback({
+                success: false,
+                error: { code: "INVALID_ROOM", message: `Unknown token: ${token}` },
             });
             return;
         }
 
         const state = getPrice(token);
         if (!state) {
-            socket.emit(SERVER_EVENTS.ERROR, {
-                code: "PRICE_UNAVAILABLE",
-                message: `No price available for ${token}`,
+            callback({
+                success: false,
+                error: { code: "PRICE_UNAVAILABLE", message: `No price available for ${token}` },
             });
             return;
         }
@@ -51,29 +55,30 @@ export function registerTradeHandlers(socket: AppSocket): void {
                 price: state.price,
             });
 
+            callback({ success: true, data: trade });
             socket.emit(SERVER_EVENTS.TRADE_CONFIRM, trade);
         } catch (err) {
             console.error("trade:execute error", err);
-            socket.emit(SERVER_EVENTS.ERROR, {
-                code: "TRADE_FAILED",
-                message: "Failed to execute trade",
+            callback({
+                success: false,
+                error: { code: "TRADE_FAILED", message: "Failed to execute trade" },
             });
         } finally {
             decrementPending(socket.id)
         }
     });
 
-    socket.on(CLIENT_EVENTS.HISTORY, async () => {
+    socket.on(CLIENT_EVENTS.HISTORY, async (callback) => {
         const user = socket.data.user;
         incrementPending(socket.id);
         try {
-            const trades = await getTradesByUserId(user.id);
-            socket.emit(SERVER_EVENTS.HISTORY_RESULT, { trades });
+            const trades: TradeRow[] = await getTradesByUserId(user.id);
+             callback({ success: true, data: { trades } });
         } catch (err) {
             console.error("trade:history error", err);
-            socket.emit(SERVER_EVENTS.ERROR, {
-                code: "HISTORY_FAILED",
-                message: "Failed to fetch trade history",
+            callback({
+                success: false,
+                error: { code: "HISTORY_FAILED", message: "Failed to fetch trade history" },
             });
         } finally {
             decrementPending(socket.id)

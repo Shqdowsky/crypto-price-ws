@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
 import { initialSocketState, socketReducer, type SocketState } from "./socketReducer";
 import { io, type Socket } from "socket.io-client";
-import { CLIENT_EVENTS, SERVER_EVENTS, type ClientToServerEvents, type RoomName, type ServerToClientEvents } from "@crypto-price-ws/shared";
+import { CLIENT_EVENTS, SERVER_EVENTS, type AckResponse, type ClientToServerEvents, type RoomName, type ServerToClientEvents } from "@crypto-price-ws/shared";
 
 
 const WS_URL = import.meta.env.VITE_SERVER_URL;
+const ACK_TIMEOUT_MS = import.meta.env.ACK_TIMEOUT_MS;
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 interface SocketContextValue {
@@ -75,26 +76,115 @@ export function SocketProvider({children}: {children: React.ReactNode}){
         };
     }, [])
 
-    const joinRoom = useCallback((room: RoomName) => {
-        socketRef.current?.emit(CLIENT_EVENTS.SUBSCRIBE, room);
-        dispatch({ type: "ROOM_JOINED", room });
+    const joinRoom = useCallback( async (room: RoomName) => {
+        if (!socketRef.current) return;
+        try{
+            const res: AckResponse = await socketRef.current
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.SUBSCRIBE, room);
+        
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            dispatch({ type: "ROOM_JOINED", room });
+            dispatch({ type: "CLEAR_ERROR" });
+        } catch{
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to join request" },
+            });
+        }
     }, []);
 
-    const leaveRoom = useCallback((room: RoomName) => {
-        socketRef.current?.emit(CLIENT_EVENTS.UNSUBSCRIBE, room);
-        dispatch({ type: "ROOM_LEFT", room });
+    const leaveRoom = useCallback(async(room: RoomName) => {
+        if (!socketRef.current) return;
+
+        try{
+            const res: AckResponse = await socketRef.current
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.UNSUBSCRIBE, room);
+            
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+            dispatch({ type: "ROOM_LEFT", room });
+        }catch{
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to leave request" },
+            });
+        }
     }, []);
 
-    const getPrice = useCallback((room: RoomName) => {
-        socketRef.current?.emit(CLIENT_EVENTS.GET_PRICE, room);
+    const getPrice = useCallback(async (room: RoomName) => {
+        if (!socketRef.current) return;
+
+        try {
+            const res = await socketRef.current
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.GET_PRICE, room);
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            if (res.data) dispatch({ type: "PRICE_CURRENT", payload: res.data });
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to price request" },
+            });
+        }
     }, []);
 
-    const trade = useCallback((token: RoomName, side: "buy" | "sell") => {
-        socketRef.current?.emit(CLIENT_EVENTS.TRADE, { token, side });
+    const trade = useCallback(async (token: RoomName, side: "buy" | "sell") => {
+        if (!socketRef.current) return null;
+
+        try {
+            const res = await socketRef.current
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.TRADE, { token, side });
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return null;
+            }
+
+            if (res.data) dispatch({ type: "TRADE_CONFIRM", payload: res.data });
+            return res.data ?? null;
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to trade request" },
+            });
+            return null;
+        }
     }, []);
 
-    const fetchHistory = useCallback(() => {
-        socketRef.current?.emit(CLIENT_EVENTS.HISTORY);
+    const fetchHistory = useCallback(async () => {
+        if (!socketRef.current) return;
+
+        try {
+            const res = await socketRef.current
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.HISTORY);
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            if (res.data) dispatch({ type: "HISTORY_RESULT", trades: res.data.trades });
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to history request" },
+            });
+        }
     }, []);
 
     return (

@@ -10,7 +10,7 @@ export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) =
     const cookieHeader = socket.handshake.headers.cookie;
     if (!cookieHeader) return next(new Error("Not authenticated"));
 
-    const parsed = cookie.parseCookie(cookieHeader);
+    const parsed = cookie.parse(cookieHeader as string || "");
     const token = parsed.token;
 
     if(!token){

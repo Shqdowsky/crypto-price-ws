@@ -24,6 +24,12 @@ export interface TradeRow {
     created_at: string;
 }
 
+export interface AckResponse<T = void> {
+    success: boolean;
+    data?: T;
+    error?: ErrorResponse;
+}
+
 export interface ServerToClientEvents {
     [SERVER_EVENTS.PRICE_UPDATE]: (payload: TokenPayload) => void;
     [SERVER_EVENTS.RATE_LIMITED]: (payload: { retryAfterMs: number }) => void;
@@ -34,12 +40,16 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-    [CLIENT_EVENTS.SUBSCRIBE]: (room: RoomName) => void;
-    [CLIENT_EVENTS.UNSUBSCRIBE]: (room: RoomName) => void;
-    [CLIENT_EVENTS.GET_PRICE]: (room: RoomName) => void;
-    [CLIENT_EVENTS.HISTORY]: () => void;
-    [CLIENT_EVENTS.TRADE]: (payload: { token: RoomName; side: 'buy' | 'sell' }) => void;
+    [CLIENT_EVENTS.SUBSCRIBE]: (room: RoomName, callback: (res: AckResponse) => void) => void;
+    [CLIENT_EVENTS.UNSUBSCRIBE]: (room: RoomName, callback: (res: AckResponse) => void) => void;
+    [CLIENT_EVENTS.GET_PRICE]: (room: RoomName, callback: (res: AckResponse<TokenPayload>) => void) => void;
+    [CLIENT_EVENTS.HISTORY]: (callback: (res: AckResponse<{ trades: TradeRow[] }>) => void) => void;
+    [CLIENT_EVENTS.TRADE]: (
+        payload: { token: RoomName; side: 'buy' | 'sell' },
+        callback: (res: AckResponse<TradeConfirm>) => void
+    ) => void;
 }
+
 
 export interface SocketData {
     user: PublicUser;

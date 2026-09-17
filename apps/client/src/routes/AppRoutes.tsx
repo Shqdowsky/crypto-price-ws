@@ -3,6 +3,8 @@ import { ProtectedRoute } from "./guards/ProtectedRoute";
 import { PublicOnlyRoute } from "./guards/PublicOnlyRoute";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { SocketProvider } from "../context/socket/SocketProvider";
+import { Dashboard } from "../pages/Dashboard";
 
 export function AppRoutes(){
     return(
@@ -12,9 +14,9 @@ export function AppRoutes(){
             <Route path="/" element={
                 <ProtectedRoute>
                     <></>
-                    {/* <SocketProvider>
+                    <SocketProvider>
                         <Dashboard />
-                    </SocketProvider> */}
+                    </SocketProvider>
                 </ProtectedRoute>
             } />
         </Routes>
