@@ -3,7 +3,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/auth/AuthContext';
 import { BrowserRouter} from 'react-router-dom';
 import { AppRoutes } from './routes/AppRoutes';
 

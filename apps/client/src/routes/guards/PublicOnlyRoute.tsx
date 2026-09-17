@@ -1,5 +1,5 @@
 import type React from "react";
-import { useAuthContext } from "../../context/AuthContext";
+import { useAuthContext } from "../../context/auth/AuthContext";
 import { Navigate } from "react-router";
 
 export function PublicOnlyRoute({children}: {children: React.ReactNode}){

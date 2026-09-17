@@ -1,7 +1,6 @@
 import { createContext, useContext } from "react";
-import { useAuthQuery } from "../hooks/authQuery";
-import type { AuthState } from "../types/auth";
-
+import { useAuthQuery } from "../../hooks/authQueries";
+import type { AuthState } from "../../types/auth";
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 

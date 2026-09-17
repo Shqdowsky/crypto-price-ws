@@ -48,12 +48,33 @@ async function issueTokens(res: Response, user: PublicUser) {
   const refreshToken = generateRefreshToken();
   const familyId = randomUUID();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_MAX_AGE);
+  const MAX_SESSIONS_PER_USER = 5;
 
-  await pool.query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at)
-     VALUES ($1, $2, $3, $4)`,
-    [user.id, hashToken(refreshToken), familyId, expiresAt]
-  );
+  await pool.query("BEGIN");
+  try {
+    await pool.query(
+      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [user.id, hashToken(refreshToken), familyId, expiresAt]
+    );
+
+    await pool.query(
+      `DELETE FROM refresh_tokens
+       WHERE user_id = $1
+         AND id NOT IN (
+           SELECT id FROM refresh_tokens
+           WHERE user_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2
+         )`,
+      [user.id, MAX_SESSIONS_PER_USER]
+    );
+
+    await pool.query("COMMIT");
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    throw err;
+  }
 
   setAccessCookie(res, accessToken);
   setRefreshCookie(res, refreshToken);

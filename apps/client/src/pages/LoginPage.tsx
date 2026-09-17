@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router";
-import { useLoginMutation } from "../hooks/loginQuery";
-import type { LoginCredentials } from "../types/loginCredentials";
+import { useLocation, useNavigate } from "react-router";
+import type { LoginCredentials } from "../types/auth";
 import { useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { useLoginMutation } from "../hooks/authQueries";
 
 const initialCredentials: LoginCredentials = {
   email: "",
@@ -11,6 +11,8 @@ const initialCredentials: LoginCredentials = {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/";
   const loginMutation = useLoginMutation();
   const [credentials, setCredentials] = useState<LoginCredentials>(initialCredentials);
 
@@ -23,7 +25,7 @@ export function LoginPage() {
 
     try {
       await loginMutation.mutateAsync(credentials);
-      navigate("/", { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       console.log(err);
     }

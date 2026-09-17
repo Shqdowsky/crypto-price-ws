@@ -22,8 +22,9 @@ type TypedRequest<B = {}, P extends Record<string, string> = {}, Q = {}>
 router.post("/register", validate(registerSchema), async (req: TypedRequest<ReqBody>, res: Response): Promise<void> => {
     try{
         const {username, email, password} = req.body;
-        await register(username, email, password);
-        res.status(201).send("Registered successfully");
+        const user = await register(username, email, password);
+        await issueTokens(res, user);
+        res.status(201).json({message: "Registered successfully"});
     }catch(error){
         console.error(error)
         if (error instanceof AppError) {

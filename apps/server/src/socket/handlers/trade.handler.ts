@@ -21,8 +21,7 @@ export function registerTradeHandlers(socket: AppSocket): void {
             });
             return;
         }
-        // user is guaranteed by socketAuthMiddleware — but guard defensively
-        // because TypeScript types socket.data.user as optional
+
         const user = socket.data.user;
 
         if (!VALID_ROOMS.has(token)) {
