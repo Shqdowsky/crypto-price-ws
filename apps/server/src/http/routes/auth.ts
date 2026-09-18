@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { register, login } from "../service/auth.service.js";
 import { AppError, isPgError, type ErrorResponse, type PgError } from "@crypto-price-ws/shared";
-import type { AppJwtPayload, AuthResult, PublicUser, ReqBody } from "@crypto-price-ws/shared";
+import type { PublicUser, ReqBody } from "@crypto-price-ws/shared";
 import {validate} from "../middleware/validate.js";
 import { registerSchema, loginSchema } from "../../schemas/auth.schema.js";
 import { setAccessCookie, clearAuthCookies, setRefreshCookie, issueTokens } from "../utils/authCookie.js";
@@ -16,14 +16,15 @@ const router = Router();
 
 type TypedRequest<B = {}, P extends Record<string, string> = {}, Q = {}> 
   = Request<P, any, B, Q> & {
-    user?: AppJwtPayload;
-  };;
+    user?: PublicUser;
+  };
 
 router.post("/register", validate(registerSchema), async (req: TypedRequest<ReqBody>, res: Response): Promise<void> => {
     try{
         const {username, email, password} = req.body;
-        await register(username, email, password);
-        res.status(201).send("Registered successfully");
+        const user = await register(username, email, password);
+        await issueTokens(res, user);
+        res.status(201).json({message: "Registered successfully"});
     }catch(error){
         console.error(error)
         if (error instanceof AppError) {
@@ -40,8 +41,8 @@ router.post("/register", validate(registerSchema), async (req: TypedRequest<ReqB
 router.post("/login", validate(loginSchema), async(req: TypedRequest<Omit<ReqBody, 'username'>>, res: Response<PublicUser | Omit<ErrorResponse, 'code'>>): Promise<void> =>{
     try{
         const {email, password} = req.body;
-        const {token, user} = await login(email, password);
-        issueTokens(res, user);
+        const user = await login(email, password);
+        await issueTokens(res, user);
         res.json(user)
     }catch(error){
         console.error(error)
@@ -108,7 +109,7 @@ router.get("/me", requireAuth, async (req: TypedRequest, res) => {
         Select id, username, email
         From users
         Where id = $1
-    `, [req.user]);
+    `, [req.user?.id]);
     const user = result.rows[0] ?? null;
     if (!user) return res.status(401).json({ error: "Not authenticated" });
     res.json({ user });

@@ -1,9 +1,6 @@
 import pool from "../../config/db.js";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { AppError } from "@crypto-price-ws/shared";
-import { env } from "../../config/env.js";
-import type { AuthResult, AppJwtPayload } from "@crypto-price-ws/shared"
 import { type IUser, type PublicUser } from "@crypto-price-ws/shared";
 
 export async function register(username: string, email: string, password: string): Promise<PublicUser>{
@@ -19,7 +16,7 @@ export async function register(username: string, email: string, password: string
     }
     return user;
 }
-export async function login(email: string, password: string): Promise<AuthResult>{
+export async function login(email: string, password: string): Promise<PublicUser>{
     const result = await pool.query<IUser>("SELECT id, username, email, password FROM users WHERE email = $1", [email]);
     const candidate = result.rows[0];
     if(!candidate){
@@ -29,19 +26,9 @@ export async function login(email: string, password: string): Promise<AuthResult
     if(!isPassEquals){
         throw new AppError("Pasword doesn't match", 400);
     }
-    const payload: AppJwtPayload = {
+    return {
         id: candidate.id.toString(),
         username: candidate.username,
         email: candidate.email,
     }
-    const token = jwt.sign(
-        payload,
-        env.JWT_SECRET as string,
-        { expiresIn: '1h' }
-    )
-    return {token, user: {
-        id: candidate.id.toString(),
-        username: candidate.username,
-        email: candidate.email,
-    }}
 }
