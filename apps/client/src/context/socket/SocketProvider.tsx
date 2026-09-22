@@ -5,7 +5,7 @@ import { CLIENT_EVENTS, SERVER_EVENTS, type AckResponse, type ClientToServerEven
 
 
 const WS_URL = import.meta.env.VITE_SERVER_URL;
-const ACK_TIMEOUT_MS = import.meta.env.ACK_TIMEOUT_MS;
+const ACK_TIMEOUT_MS = Number(import.meta.env.VITE_ACK_TIMEOUT_MS) || 5000;
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 interface SocketContextValue {
@@ -18,6 +18,23 @@ interface SocketContextValue {
 }
 
 const SocketContext  = createContext<SocketContextValue | null>(null);
+
+function waitForConnection(getSocket: () => ClientSocket | null): Promise<ClientSocket> {
+
+  return new Promise((resolve) => {
+    const check = () => {
+        const socket = getSocket();
+        if(socket?.connected){
+            resolve(socket);
+        } else if(socket){
+            socket.once("connect", () => resolve(socket));
+        }else{
+            setTimeout(check,20);
+        }
+    };
+    check();
+  });
+}
 
 export function SocketProvider({children}: {children: React.ReactNode}){
     const [state, dispatch] = useReducer(socketReducer, initialSocketState)
@@ -77,9 +94,9 @@ export function SocketProvider({children}: {children: React.ReactNode}){
     }, [])
 
     const joinRoom = useCallback( async (room: RoomName) => {
-        if (!socketRef.current) return;
+        const socket = await waitForConnection(() => socketRef.current);
         try{
-            const res: AckResponse = await socketRef.current
+            const res: AckResponse = await socket
                 .timeout(ACK_TIMEOUT_MS)
                 .emitWithAck(CLIENT_EVENTS.SUBSCRIBE, room);
         
@@ -99,10 +116,9 @@ export function SocketProvider({children}: {children: React.ReactNode}){
     }, []);
 
     const leaveRoom = useCallback(async(room: RoomName) => {
-        if (!socketRef.current) return;
-
+        const socket = await waitForConnection(() => socketRef.current);
         try{
-            const res: AckResponse = await socketRef.current
+            const res: AckResponse = await socket
                 .timeout(ACK_TIMEOUT_MS)
                 .emitWithAck(CLIENT_EVENTS.UNSUBSCRIBE, room);
             
@@ -120,10 +136,10 @@ export function SocketProvider({children}: {children: React.ReactNode}){
     }, []);
 
     const getPrice = useCallback(async (room: RoomName) => {
-        if (!socketRef.current) return;
+        const socket = await waitForConnection(() => socketRef.current);
 
         try {
-            const res = await socketRef.current
+            const res = await socket
                 .timeout(ACK_TIMEOUT_MS)
                 .emitWithAck(CLIENT_EVENTS.GET_PRICE, room);
 
@@ -142,10 +158,10 @@ export function SocketProvider({children}: {children: React.ReactNode}){
     }, []);
 
     const trade = useCallback(async (token: RoomName, side: "buy" | "sell") => {
-        if (!socketRef.current) return null;
+        const socket = await waitForConnection(() => socketRef.current);
 
         try {
-            const res = await socketRef.current
+            const res = await socket
                 .timeout(ACK_TIMEOUT_MS)
                 .emitWithAck(CLIENT_EVENTS.TRADE, { token, side });
 
@@ -166,10 +182,10 @@ export function SocketProvider({children}: {children: React.ReactNode}){
     }, []);
 
     const fetchHistory = useCallback(async () => {
-        if (!socketRef.current) return;
+        const socket = await waitForConnection(() => socketRef.current);
 
         try {
-            const res = await socketRef.current
+            const res = await socket
                 .timeout(ACK_TIMEOUT_MS)
                 .emitWithAck(CLIENT_EVENTS.HISTORY);
 
