@@ -48,7 +48,8 @@ export type SocketAction =
     | { type: "HISTORY_RESULT"; trades: TradeRow[] }
     | { type: "RATE_LIMITED"; retryAfterMs: number }
     | { type: "SERVER_ERROR"; payload: ErrorResponse }
-    | { type: "CLEAR_ERROR" };
+    | { type: "CLEAR_ERROR" }
+    | { type: "ROOMS_RESTORED"; rooms: RoomName[] };
 
 export function socketReducer(state: SocketState, action: SocketAction): SocketState {
     switch(action.type){
@@ -73,6 +74,11 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
         case "ROOM_LEFT": {
             const joinedRooms = new Set(state.joinedRooms);
             joinedRooms.delete(action.room);
+            return { ...state, joinedRooms };
+        }
+
+        case "ROOMS_RESTORED": {
+            const joinedRooms = new Set(action.rooms);
             return { ...state, joinedRooms };
         }
 

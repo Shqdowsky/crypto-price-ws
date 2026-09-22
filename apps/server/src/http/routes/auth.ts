@@ -117,6 +117,7 @@ router.get("/me", requireAuth, async (req: TypedRequest, res) => {
 
 router.post("/logout", async (req, res) => {
     const incomingToken = req.cookies?.refresh_token;
+    console.log("l here")
     if (incomingToken) {
         await pool.query(
             `UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1`,

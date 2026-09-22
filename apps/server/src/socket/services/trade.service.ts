@@ -3,7 +3,7 @@ import type { RoomName } from "@crypto-price-ws/shared";
 import type { TradeConfirm, TradeRow } from "@crypto-price-ws/shared";
 
 interface InsertTradeParams {
-    userId: string;
+    userId: number;
     token: RoomName;
     side: "buy" | "sell";
     price: number;
@@ -27,7 +27,7 @@ export async function insertTrade(params: InsertTradeParams): Promise<TradeConfi
     return trade;
 }
 
-export async function getTradesByUserId(userId:string): Promise<TradeRow[]> {
+export async function getTradesByUserId(userId:number): Promise<TradeRow[]> {
     const result = await pool.query<TradeRow>(
         `SELECT id, token, side, price, created_at
         FROM trades

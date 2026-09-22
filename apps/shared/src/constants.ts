@@ -25,6 +25,7 @@ export const SERVER_EVENTS = {
   HISTORY_RESULT: 'trade:history:result',
   RATE_LIMITED: 'rate-limited',
   ERROR: 'error:general',  
+  ROOMS_RESTORED: 'rooms:restore'
 } as const;
 
 export type ClientEvent = typeof CLIENT_EVENTS[keyof typeof CLIENT_EVENTS];

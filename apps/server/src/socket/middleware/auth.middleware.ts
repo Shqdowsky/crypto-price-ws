@@ -2,7 +2,6 @@ import type {Socket} from "socket.io";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 import type { PublicUser } from "@crypto-price-ws/shared";
-import pool from "../../config/db.js";
 import * as cookie from 'cookie';
 import { findUserById } from "../../queries.js";
 

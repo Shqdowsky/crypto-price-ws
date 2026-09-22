@@ -6,11 +6,21 @@ import { RegisterPage } from "../pages/RegisterPage";
 import { SocketProvider } from "../context/socket/SocketProvider";
 import { Dashboard } from "../pages/Dashboard";
 import { TokenPage } from "../pages/TokenPage";
+import { useLogoutMutation } from "../hooks/authQueries";
 
 function AuthenticatedLayout() {
+  const logoutMutation = useLogoutMutation();
+  const handleLogOut = async () => {
+    try{
+      await logoutMutation.mutate();
+    }catch(err){
+      console.log(err);
+    }
+  }
   return (
     <ProtectedRoute>
       <SocketProvider>
+        <button onClick={handleLogOut}>Log Out</button>
         <Outlet />
       </SocketProvider>
     </ProtectedRoute>

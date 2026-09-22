@@ -43,7 +43,7 @@ export function useLogoutMutation(){
 
     return useMutation({
         mutationFn: async () => {
-            const res = await fetch(`${env.VITE_SERVER_URL}/logout`, {
+            const res = await fetch(`${env.VITE_SERVER_URL}/auth/logout`, {
                 method: "POST",
                 credentials: "include"
             });

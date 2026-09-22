@@ -37,6 +37,7 @@ export interface ServerToClientEvents {
     [SERVER_EVENTS.TRADE_CONFIRM]: (payload: TradeConfirm) => void;
     [SERVER_EVENTS.HISTORY_RESULT]: (payload: { trades: TradeRow[] }) => void;
     [SERVER_EVENTS.ERROR]: (payload: ErrorResponse) => void;
+    [SERVER_EVENTS.ROOMS_RESTORED]: (payload: { rooms: RoomName[] }) => void;
 }
 
 export interface ClientToServerEvents {
