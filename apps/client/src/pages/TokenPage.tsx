@@ -4,6 +4,8 @@ import { useSocketContext } from "../context/socket/SocketProvider";
 import { VALID_ROOMS, type RoomName } from "@crypto-price-ws/shared";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { PriceChart } from "../components/PriceChart";
+import { TradePanel } from "../components/TradePanel";
+import { ProfitLoss } from "../components/ProfitLoss";
 
 export function TokenPage() {
     const { tokenName } = useParams<{ tokenName: string }>();
@@ -28,6 +30,7 @@ export function TokenPage() {
 
     const price = state.prices[token];
     const history = state.priceHistory[token] ?? [];
+    const tokenTrades = state.trades[token] ?? [];
 
     return (
         <div>
@@ -40,6 +43,8 @@ export function TokenPage() {
                 <>
                     <p>Current price: {price ? `$${price.price.toFixed(2)}` : "waiting for price..."}</p>
                     <PriceChart data={history} />
+                    <TradePanel token={token} />
+                    <ProfitLoss trades={tokenTrades} currentPrice={price?.price} />
                 </>
             )}
         </div>

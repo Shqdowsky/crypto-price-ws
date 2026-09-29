@@ -1,4 +1,4 @@
-import type { PublicUser } from "@system-monitor/shared";
+import type { PublicUser } from "@crypto-price-ws/shared";
 import pool from "./config/db.js";
 
 export async function findUserById(id: number): Promise<PublicUser | null >{

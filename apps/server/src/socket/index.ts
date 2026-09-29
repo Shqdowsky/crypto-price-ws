@@ -6,6 +6,7 @@ import { registerSocketHandlers } from "./handlers/socket.handlers.js";
 import { cleanupSocket } from "./utils/shutdown.js";
 import { getRoomSubscriptions } from "./services/room-subscription.service.js";
 import { isValidRoom } from "./utils/room-check.js";
+import { getAccountState } from "./services/account.service.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
@@ -22,6 +23,10 @@ export function setupSocketServer(io: AppServer): void {
         socket.emit(SERVER_EVENTS.ROOMS_RESTORED, { rooms: validRooms });
         registerSocketHandlers(socket);
         registerTradeHandlers(socket);
+
+        getAccountState(socket.data.user.id)
+            .then((state) => socket.emit(SERVER_EVENTS.ACCOUNT_STATE, state))
+            .catch((err) => console.error("account:state push failed", err));
         
 
         socket.on("disconnect", (reason) => {

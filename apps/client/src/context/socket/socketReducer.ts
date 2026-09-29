@@ -74,7 +74,14 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
         case "ROOM_LEFT": {
             const joinedRooms = new Set(state.joinedRooms);
             joinedRooms.delete(action.room);
-            return { ...state, joinedRooms };
+
+            const priceHistory = { ...state.priceHistory };
+            delete priceHistory[action.room];
+
+            const trades = { ...state.trades };
+            delete trades[action.room];
+
+            return { ...state, joinedRooms, trades, priceHistory};
         }
 
         case "ROOMS_RESTORED": {

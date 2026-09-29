@@ -16,6 +16,7 @@ export const CLIENT_EVENTS = {
   GET_PRICE: 'price:get',
   TRADE: 'trade:execute', 
   HISTORY: 'trade:history',
+  GET_ACCOUNT_STATE: 'account:get'
 } as const;
 
 export const SERVER_EVENTS = {
@@ -25,7 +26,9 @@ export const SERVER_EVENTS = {
   HISTORY_RESULT: 'trade:history:result',
   RATE_LIMITED: 'rate-limited',
   ERROR: 'error:general',  
-  ROOMS_RESTORED: 'rooms:restore'
+  ROOMS_RESTORED: 'rooms:restore',
+  BALANCE_UPDATED: 'balance:update',
+  ACCOUNT_STATE: 'account:state',
 } as const;
 
 export type ClientEvent = typeof CLIENT_EVENTS[keyof typeof CLIENT_EVENTS];

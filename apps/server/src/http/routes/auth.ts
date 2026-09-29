@@ -54,7 +54,7 @@ router.post("/login", validate(loginSchema), async(req: TypedRequest<Omit<ReqBod
     }
 });
 
-router.post("/auth/refresh", async (req, res) => {
+router.post("/refresh", async (req, res) => {
     const incomingToken = req.cookies?.refresh_token;
     if (!incomingToken) return res.status(401).json({ error: "No refresh token" });
     const tokenHash = hashToken(incomingToken);

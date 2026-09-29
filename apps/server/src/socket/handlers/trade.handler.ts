@@ -1,5 +1,5 @@
 import type { Socket } from "socket.io";
-import { CLIENT_EVENTS, SERVER_EVENTS, VALID_ROOMS, type RoomName  } from "@crypto-price-ws/shared";
+import { CLIENT_EVENTS, SERVER_EVENTS, TradeError, VALID_ROOMS, type RoomName  } from "@crypto-price-ws/shared";
 import type { 
     ClientToServerEvents, 
     ServerToClientEvents, 
@@ -7,13 +7,14 @@ import type {
     TradeRow
 } from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
-import { insertTrade, getTradesByUserId } from "../services/trade.service.js";
+import { executeTrade, getTradesByUserId, toOpenPosition } from "../services/trade.service.js";
 import { decrementPending, getIsShuttingDown, incrementPending } from "../utils/shutdown.js";
+import { getAccountState } from "../services/account.service.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function registerTradeHandlers(socket: AppSocket): void {
-    socket.on(CLIENT_EVENTS.TRADE, async ({ token, side }, callback) => {
+    socket.on(CLIENT_EVENTS.TRADE, async ({ token, side, quantity  }, callback) => {
 
         if(getIsShuttingDown()){
             callback({
@@ -36,6 +37,22 @@ export function registerTradeHandlers(socket: AppSocket): void {
             return;
         }
 
+        if (side !== "buy" && side !== "sell") {
+            callback({
+                success: false,
+                error: { code: "INVALID_SIDE", message: `Invalid side: ${side}` },
+            });
+            return;
+        }
+
+        if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) {
+            callback({
+                success: false,
+                error: { code: "INVALID_QUANTITY", message: "Quantity must be a positive number" },
+            });
+            return;
+        }
+
         const state = getPrice(token);
         if (!state) {
             callback({
@@ -48,20 +65,41 @@ export function registerTradeHandlers(socket: AppSocket): void {
         incrementPending(socket.id);
 
         try {
-            const trade = await insertTrade({
+            const { position, trade, balance } = await executeTrade({
                 userId: user.id,
                 token,
                 side,
                 price: state.price,
+                qty: quantity,
             });
 
-            callback({ success: true, data: trade });
-            socket.emit(SERVER_EVENTS.TRADE_CONFIRM, trade);
+            const tradeConfirm = {
+                id: trade.id,
+                token: trade.token as RoomName,
+                side: trade.side,
+                price: trade.price,
+                quantity: trade.quantity,
+                realizedPnl: position.status === "closed" ? position.realized_pnl : null,
+                position: toOpenPosition(position),
+                createdAt: trade.created_at,
+            };
+
+            callback({ success: true, data: tradeConfirm  });
+            socket.emit(SERVER_EVENTS.TRADE_CONFIRM, tradeConfirm);
+            socket.emit(SERVER_EVENTS.BALANCE_UPDATED, { balance });
         } catch (err) {
             console.error("trade:execute error", err);
+            if (err instanceof TradeError) {
+                callback({
+                    success: false,
+                    error: { code: err.code, message: err.message },
+                });
+                return;
+            }
+            
             callback({
                 success: false,
-                error: { code: "TRADE_FAILED", message: "Failed to execute trade" },
+                 error: { code: "TRADE_FAILED", message: "Failed to execute trade" },
             });
         } finally {
             decrementPending(socket.id)
@@ -73,7 +111,7 @@ export function registerTradeHandlers(socket: AppSocket): void {
         incrementPending(socket.id);
         try {
             const trades: TradeRow[] = await getTradesByUserId(user.id);
-             callback({ success: true, data: { trades } });
+            callback({ success: true, data: { trades } });
         } catch (err) {
             console.error("trade:history error", err);
             callback({
@@ -84,4 +122,21 @@ export function registerTradeHandlers(socket: AppSocket): void {
             decrementPending(socket.id)
         }
     });
+
+    socket.on(CLIENT_EVENTS.GET_ACCOUNT_STATE, async (callback) => {
+        const user = socket.data.user;
+        incrementPending(socket.id);
+        try{
+            const state = await getAccountState(user.id);
+            callback({ success: true, data: state });
+        }catch(err){
+            console.error("account:get error", err);
+            callback({
+                success: false,
+                error: { code: "ACCOUNT_STATE_FAILED", message: "Failed to fetch account state" },
+            });
+        }finally {
+            decrementPending(socket.id)
+        }
+    })
 }

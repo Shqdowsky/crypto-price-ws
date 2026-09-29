@@ -12,7 +12,7 @@ function AuthenticatedLayout() {
   const logoutMutation = useLogoutMutation();
   const handleLogOut = async () => {
     try{
-      await logoutMutation.mutate();
+      await logoutMutation.mutateAsync();
     }catch(err){
       console.log(err);
     }
@@ -20,7 +20,7 @@ function AuthenticatedLayout() {
   return (
     <ProtectedRoute>
       <SocketProvider>
-        <button onClick={handleLogOut}>Log Out</button>
+        <button onClick={handleLogOut} disabled={logoutMutation.isPending} >{logoutMutation.isPending ? "Logging out..." : "Log Out"}</button>
         <Outlet />
       </SocketProvider>
     </ProtectedRoute>
