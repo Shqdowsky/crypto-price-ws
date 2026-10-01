@@ -7,7 +7,7 @@ import type {
     TradeRow
 } from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
-import { executeTrade, getTradesByUserId, toOpenPosition } from "../services/trade.service.js";
+import { executeTrade, getPositionHistory, getTokenTradeHistory, toPositionDTO } from "../services/trade.service.js";
 import { decrementPending, getIsShuttingDown, incrementPending } from "../utils/shutdown.js";
 import { getAccountState } from "../services/account.service.js";
 
@@ -79,13 +79,11 @@ export function registerTradeHandlers(socket: AppSocket): void {
                 side: trade.side,
                 price: trade.price,
                 quantity: trade.quantity,
-                realizedPnl: position.status === "closed" ? position.realized_pnl : null,
-                position: toOpenPosition(position),
                 createdAt: trade.created_at,
+                position: toPositionDTO(position),
             };
 
             callback({ success: true, data: tradeConfirm  });
-            socket.emit(SERVER_EVENTS.TRADE_CONFIRM, tradeConfirm);
             socket.emit(SERVER_EVENTS.BALANCE_UPDATED, { balance });
         } catch (err) {
             console.error("trade:execute error", err);
@@ -106,20 +104,20 @@ export function registerTradeHandlers(socket: AppSocket): void {
         }
     });
 
-    socket.on(CLIENT_EVENTS.HISTORY, async (callback) => {
-        const user = socket.data.user;
+    socket.on(CLIENT_EVENTS.GET_TRADE_HISTORY, async ({ token }, callback) => {
+        if (!VALID_ROOMS.has(token)) {
+            callback({ success: false, error: { code: "INVALID_ROOM", message: `Unknown token: ${token}` } });
+            return;
+        }
         incrementPending(socket.id);
         try {
-            const trades: TradeRow[] = await getTradesByUserId(user.id);
-            callback({ success: true, data: { trades } });
+            const trades = await getTokenTradeHistory(socket.data.user.id, token);
+            callback({ success: true, data: { token, trades } });
         } catch (err) {
-            console.error("trade:history error", err);
-            callback({
-                success: false,
-                error: { code: "HISTORY_FAILED", message: "Failed to fetch trade history" },
-            });
+            console.error("trade:history:token error", err);
+            callback({ success: false, error: { code: "TRADE_HISTORY_FAILED", message: "Failed to fetch trade history" } });
         } finally {
-            decrementPending(socket.id)
+            decrementPending(socket.id);
         }
     });
 
@@ -138,5 +136,22 @@ export function registerTradeHandlers(socket: AppSocket): void {
         }finally {
             decrementPending(socket.id)
         }
-    })
+    });
+
+    socket.on(CLIENT_EVENTS.GET_POSITION_HISTORY, async ({ token }, callback) => {
+        if (!VALID_ROOMS.has(token)) {
+            callback({ success: false, error: { code: "INVALID_ROOM", message: `Unknown token: ${token}` } });
+            return;
+        }
+        incrementPending(socket.id);
+        try {
+            const positions = await getPositionHistory(socket.data.user.id, token);
+            callback({ success: true, data: { token, positions } });
+        } catch (err) {
+            console.error("position:history error", err);
+            callback({ success: false, error: { code: "POSITION_HISTORY_FAILED", message: "Failed to fetch position history" } });
+        } finally {
+            decrementPending(socket.id);
+        }
+    });
 }

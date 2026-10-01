@@ -1,6 +1,6 @@
 import pool from "../../config/db.js";
 import { TradeError, type RoomName } from "@crypto-price-ws/shared";
-import type { OpenPosition, PositionRow, TradeExecutionResult, TradeRow } from "@crypto-price-ws/shared";
+import type { Position, PositionRow, TradeExecutionResult, TradeHistoryEntry, TradeRow } from "@crypto-price-ws/shared";
 import {Decimal} from "decimal.js"
 import type { PoolClient } from "pg";
 
@@ -221,27 +221,57 @@ async function applySell(
     return update.rows[0]!;
 }
 
-export function toOpenPosition(position: PositionRow): OpenPosition | null {
-    if (position.status === 'closed') return null;
+export function toPositionDTO(position: PositionRow): Position {
     return {
         id: position.id,
         token: position.token as RoomName,
+        status: position.status,
         quantity: position.quantity,
         avgCostBasis: position.avg_cost_basis,
         totalBought: position.total_bought,
         totalSold: position.total_sold,
+        avgSellPrice: position.avg_sell_price,
+        realizedPnl: position.realized_pnl,
         openedAt: position.opened_at,
+        closedAt: position.closed_at,
     };
 }
 
-export async function getTradesByUserId(userId:number): Promise<TradeRow[]> {
+export async function getPositionHistory(userId: number, token: RoomName): Promise<Position[]> {
+    const result = await pool.query<PositionRow>(
+        `SELECT * FROM positions
+         WHERE user_id = $1 AND token = $2 AND status = 'closed'
+         ORDER BY closed_at DESC`,
+        [userId, token]
+    );
+    return result.rows.map(toPositionDTO);
+}
+
+export async function getTradesByUserId(userId: number): Promise<TradeRow[]> {
     const result = await pool.query<TradeRow>(
-        `SELECT id, token, side, price, created_at
+        `SELECT id, token, side, price, quantity, created_at
         FROM trades
         WHERE user_id = $1
         ORDER BY created_at DESC`,
         [userId]
     );
-
     return result.rows;
+}
+
+export async function getTokenTradeHistory(userId: number, token: RoomName): Promise<TradeHistoryEntry[]> {
+    const result = await pool.query<TradeHistoryEntry>(
+        `SELECT id, token, side, price, quantity, created_at
+         FROM trades
+         WHERE user_id = $1 AND token = $2
+         ORDER BY created_at DESC`,
+        [userId, token]
+    );
+    return result.rows.map((r) => ({
+        id: r.id,
+        token: r.token as RoomName,
+        side: r.side,
+        price: r.price,
+        quantity: r.quantity,
+        createdAt: r.createdAt,
+    }));
 }

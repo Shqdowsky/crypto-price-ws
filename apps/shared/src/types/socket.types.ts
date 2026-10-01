@@ -8,14 +8,22 @@ export interface TokenPayload {
     timestamp: number;
 }
 
+export interface TradeHistoryEntry {
+    id: number;
+    token: RoomName;
+    side: 'buy' | 'sell';
+    price: string;
+    quantity: string;
+    createdAt: string;
+}
+
 export interface TradeConfirm {
     id: number;
     token: RoomName;
     side: 'buy' | 'sell';
     price: string;
     quantity: string;
-    realizedPnl: string | null;
-    position: OpenPosition | null;
+    position: Position;
     createdAt: string;
 }
 
@@ -23,19 +31,23 @@ export interface BalanceUpdate {
     balance: string;
 }
 
-export interface OpenPosition {
+export interface Position {
     id: number;
     token: RoomName;
+    status: 'open' | 'closed';
     quantity: string;
     avgCostBasis: string;
     totalBought: string;
     totalSold: string;
+    avgSellPrice: string | null;
+    realizedPnl: string | null;
     openedAt: string;
+    closedAt: string | null;
 }
 
 export interface AccountState {
     balance: string;
-    openPositions: OpenPosition[];
+    openPositions: Position[];
 }
 
 export interface TradeRow {
@@ -99,6 +111,14 @@ export interface ClientToServerEvents {
         callback: (res: AckResponse<TradeConfirm>) => void
     ) => void;
     [CLIENT_EVENTS.GET_ACCOUNT_STATE]: (callback: (res: AckResponse<AccountState>) => void) => void;
+    [CLIENT_EVENTS.GET_POSITION_HISTORY]: (
+       payload: { token: RoomName },
+       callback: (res: AckResponse<{ token: RoomName; positions: Position[] }>) => void
+    ) => void;
+    [CLIENT_EVENTS.GET_TRADE_HISTORY]: (
+        payload: { token: RoomName },
+        callback: (res: AckResponse<{ token: RoomName; trades: TradeHistoryEntry[] }>) => void
+    ) => void;
 }
 
 

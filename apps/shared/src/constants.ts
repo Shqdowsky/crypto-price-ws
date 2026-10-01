@@ -16,7 +16,9 @@ export const CLIENT_EVENTS = {
   GET_PRICE: 'price:get',
   TRADE: 'trade:execute', 
   HISTORY: 'trade:history',
-  GET_ACCOUNT_STATE: 'account:get'
+  GET_ACCOUNT_STATE: 'account:get',
+  GET_POSITION_HISTORY: 'position:history',
+  GET_TRADE_HISTORY: 'trade:history:token'
 } as const;
 
 export const SERVER_EVENTS = {
