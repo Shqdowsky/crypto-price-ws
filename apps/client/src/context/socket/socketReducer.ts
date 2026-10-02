@@ -172,7 +172,11 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
             for (const pos of action.payload.openPositions) {
                 openPositions[pos.token] = pos;
             }
-            return { ...state, balance: action.payload.balance, openPositions };
+            const closedPositions: Partial<Record<RoomName, Position[]>> = {};
+            for (const pos of action.payload.closedPositions) {
+                closedPositions[pos.token] = [...(closedPositions[pos.token] ?? []), pos];
+            }
+            return { ...state, balance: action.payload.balance, openPositions, closedPositions };
         }
         
         case "BALANCE_UPDATED":
