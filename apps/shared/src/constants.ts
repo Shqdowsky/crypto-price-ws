@@ -37,17 +37,17 @@ export type ClientEvent = typeof CLIENT_EVENTS[keyof typeof CLIENT_EVENTS];
 export type ServerEvent = typeof SERVER_EVENTS[keyof typeof SERVER_EVENTS];
 
 export const PRICE_CONFIG = {
-    TICK_INTERVAL_MS: 1000,
-    MAX_DRIFT: 0.005,
-    MIN_PRICE: 0.000001,
+  TICK_INTERVAL_MS: 1000,
+  MAX_DRIFT: 0.005,
+  MIN_PRICE: 0.000001,
 
-    INITIAL_PRICES: {
-      [ROOMS.BTC]: 65000,
-      [ROOMS.ETH]: 1700,
-      [ROOMS.SOL]: 70,
-      [ROOMS.DOGE]: 0.12,
-      [ROOMS.BLYAMBA]: 167693310
-    } as Record<RoomName, number>,
+  INITIAL_PRICES: {
+    [ROOMS.BTC]: 65000,
+    [ROOMS.ETH]: 1700,
+    [ROOMS.SOL]: 70,
+    [ROOMS.DOGE]: 0.12,
+    [ROOMS.BLYAMBA]: 167693310
+  } as Record<RoomName, number>,
 } as const;
 
 export const RATE_LIMIT = {

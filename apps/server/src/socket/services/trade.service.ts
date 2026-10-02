@@ -1,6 +1,6 @@
 import pool from "../../config/db.js";
 import { TradeError, type RoomName } from "@crypto-price-ws/shared";
-import type { Position, PositionRow, TradeExecutionResult, TradeHistoryEntry, TradeRow } from "@crypto-price-ws/shared";
+import type { Position, PositionRow, TradeConfirm, TradeExecutionResult, TradeHistoryEntry, TradeRow } from "@crypto-price-ws/shared";
 import {Decimal} from "decimal.js"
 import type { PoolClient } from "pg";
 
@@ -259,7 +259,7 @@ export async function getTradesByUserId(userId: number): Promise<TradeRow[]> {
 }
 
 export async function getTokenTradeHistory(userId: number, token: RoomName): Promise<TradeHistoryEntry[]> {
-    const result = await pool.query<TradeHistoryEntry>(
+    const result = await pool.query<{id: number, token: RoomName, side: 'buy' | 'sell', price: string, quantity: string, created_at: string}>(
         `SELECT id, token, side, price, quantity, created_at
          FROM trades
          WHERE user_id = $1 AND token = $2
@@ -272,6 +272,6 @@ export async function getTokenTradeHistory(userId: number, token: RoomName): Pro
         side: r.side,
         price: r.price,
         quantity: r.quantity,
-        createdAt: r.createdAt,
+        createdAt: r.created_at
     }));
 }
