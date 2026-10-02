@@ -48,6 +48,7 @@ export interface Position {
 export interface AccountState {
     balance: string;
     openPositions: Position[];
+    closedPositions: Position[];
 }
 
 export interface TradeRow {

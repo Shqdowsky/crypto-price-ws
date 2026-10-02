@@ -16,7 +16,6 @@ export function TokenPage() {
     const isValidToken = tokenName && VALID_ROOMS.has(tokenName as RoomName);
     const token = isValidToken ? (tokenName as RoomName) : null;
     const isJoined = token ? state.joinedRooms.has(token) : false;
-
     useEffect(() => {
         if (!token || isJoined) return;
         if (joinAttempted.current === token) return;
@@ -41,6 +40,11 @@ export function TokenPage() {
     const price = state.prices[token];
     const history = state.priceHistory[token] ?? [];
 
+    const isProfit = price && state.openPositions[token] ? price.price > Number(state.openPositions[token].avgCostBasis) : null;
+    const priceColor = isProfit != null ? 
+        isProfit 
+        ? "green" : "red"
+        : "grey"
     return (
         <div>
             <Link to="/">&larr; Back to dashboard</Link>
@@ -50,7 +54,7 @@ export function TokenPage() {
             {!isJoined && <p>Joining {token.toUpperCase()}...</p>}
             {isJoined && (
                 <>
-                    <p>Current price: {price ? `$${price.price.toFixed(2)}` : "waiting for price..."}</p>
+                    <p style={{color: priceColor}}>Current price: {price ? `$${price.price.toFixed(2)}` : "waiting for price..."}</p>
                     <PriceChart data={history} />
                     <TradePanel token={token} />
                     <TradeHistoryPanel token={token} />
