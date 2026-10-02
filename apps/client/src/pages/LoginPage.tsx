@@ -1,9 +1,7 @@
-import { useLocation, useNavigate } from "react-router";
 import type { LoginCredentials } from "../types/auth";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { useLoginMutation } from "../hooks/authQueries";
-import { useAuthContext } from "../context/auth/AuthContext";
 
 const initialCredentials: LoginCredentials = {
   email: "",

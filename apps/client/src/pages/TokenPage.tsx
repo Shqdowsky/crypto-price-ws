@@ -4,11 +4,14 @@ import { useSocketContext } from "../context/socket/SocketProvider";
 import { VALID_ROOMS, type RoomName } from "@crypto-price-ws/shared";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { PriceChart } from "../components/PriceChart";
+import { TradePanel } from "../components/TradePanel";
+import { TradeHistoryPanel } from "../components/TradeHistoryPanel";
 
 export function TokenPage() {
     const { tokenName } = useParams<{ tokenName: string }>();
-    const { state, joinRoom } = useSocketContext();
+    const { state, joinRoom, getPositionHistory, getTradeHistory } = useSocketContext();
     const joinAttempted = useRef<RoomName | null>(null);
+    const historyFetched = useRef<RoomName | null>(null);
 
     const isValidToken = tokenName && VALID_ROOMS.has(tokenName as RoomName);
     const token = isValidToken ? (tokenName as RoomName) : null;
@@ -21,6 +24,15 @@ export function TokenPage() {
         joinAttempted.current = token;
         joinRoom(token);
     }, [token, isJoined, joinRoom]);
+
+    useEffect(() => {
+        if (!token) return;
+        if (historyFetched.current === token) return;
+
+        historyFetched.current = token;
+        getPositionHistory(token);
+        getTradeHistory(token);
+    }, [token, getPositionHistory, getTradeHistory]);
 
     if (!isValidToken || !token) {
         return <Navigate to="/" replace />;
@@ -40,6 +52,9 @@ export function TokenPage() {
                 <>
                     <p>Current price: {price ? `$${price.price.toFixed(2)}` : "waiting for price..."}</p>
                     <PriceChart data={history} />
+                    <TradePanel token={token} />
+                    <TradeHistoryPanel token={token} />
+                    {/* <ProfitLoss trades={tokenTrades} currentPrice={price?.price} /> */}
                 </>
             )}
         </div>

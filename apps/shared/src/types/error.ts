@@ -8,6 +8,16 @@ export class AppError extends Error {
     }
 }
 
+export class TradeError extends Error {
+    constructor(
+        public code: "INSUFFICIENT_BALANCE" | "NO_OPEN_POSITION" | "SELL_EXCEEDS_POSITION" | "INVALID_TRADE_INPUT",
+        message: string
+    ){
+        super(message);
+        this.name = "TradeError";
+    }
+}
+
 export interface ErrorResponse {
     code: string;
     message: string;

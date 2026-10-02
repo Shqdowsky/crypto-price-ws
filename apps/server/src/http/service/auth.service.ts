@@ -27,7 +27,7 @@ export async function login(email: string, password: string): Promise<PublicUser
         throw new AppError("Pasword doesn't match", 400);
     }
     return {
-        id: candidate.id.toString(),
+        id: candidate.id,
         username: candidate.username,
         email: candidate.email,
     }

@@ -12,12 +12,13 @@ import type {
 import { getPrice } from "../../market/price-store.js";
 import { checkRateLimit } from "../middleware/rate-limit.middleware.js";
 import { isValidRoom } from "../utils/room-check.js";
+import { addRoomSubscription, removeRoomSubscription } from "../services/room-subscription.service.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function registerSocketHandlers(socket: AppSocket): void {
 
-    socket.on(CLIENT_EVENTS.SUBSCRIBE, (room, callback) => {
+    socket.on(CLIENT_EVENTS.SUBSCRIBE, async (room, callback) => {
         if (!isValidRoom(room)) {
             callback({
                 success: false,
@@ -27,6 +28,11 @@ export function registerSocketHandlers(socket: AppSocket): void {
         }
 
         socket.join(room);
+        try{
+            await addRoomSubscription(socket.data.user.id, room);
+        }catch(err){
+            console.error("Failed to persist room subscription", err);
+        }
         callback({ success: true });
 
         const state = getPrice(room);
@@ -39,7 +45,7 @@ export function registerSocketHandlers(socket: AppSocket): void {
         }
     });
 
-    socket.on(CLIENT_EVENTS.UNSUBSCRIBE, (room, callback) => {
+    socket.on(CLIENT_EVENTS.UNSUBSCRIBE, async (room, callback) => {
         if (!isValidRoom(room)) {
             callback({
                 success: false,
@@ -49,6 +55,11 @@ export function registerSocketHandlers(socket: AppSocket): void {
         }
 
         socket.leave(room);
+         try {
+            await removeRoomSubscription(socket.data.user.id, room);
+        } catch (err) {
+            console.error("Failed to remove room subscription", err);
+        }
         callback({ success: true });
     });
 

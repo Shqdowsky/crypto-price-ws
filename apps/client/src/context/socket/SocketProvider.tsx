@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
 import { initialSocketState, socketReducer, type SocketState } from "./socketReducer";
 import { io, type Socket } from "socket.io-client";
-import { CLIENT_EVENTS, SERVER_EVENTS, type AckResponse, type ClientToServerEvents, type RoomName, type ServerToClientEvents } from "@crypto-price-ws/shared";
-
+import { CLIENT_EVENTS, SERVER_EVENTS, type AckResponse, type ClientToServerEvents, type RoomName, type ServerToClientEvents, type TradeConfirm } from "@crypto-price-ws/shared";
 
 const WS_URL = import.meta.env.VITE_SERVER_URL;
 const ACK_TIMEOUT_MS = Number(import.meta.env.VITE_ACK_TIMEOUT_MS) || 5000;
@@ -13,27 +12,44 @@ interface SocketContextValue {
     joinRoom: (room: RoomName) => void;
     leaveRoom: (room: RoomName) => void;
     getPrice: (room: RoomName) => void;
-    trade: (token: RoomName, side: "buy" | "sell") => void;
+    trade: (token: RoomName, side: "buy" | "sell", quantity: number) => Promise<TradeConfirm | null>;
     fetchHistory: () => void;
+    getAccountState: () => void;
+    getPositionHistory: (token: RoomName) => void;
+    getTradeHistory: (token: RoomName) => void;
 }
 
 const SocketContext  = createContext<SocketContextValue | null>(null);
+let pendingSocketPromise: Promise<any> | null = null;
 
 function waitForConnection(getSocket: () => ClientSocket | null): Promise<ClientSocket> {
+    const socket = getSocket();
 
-  return new Promise((resolve) => {
-    const check = () => {
-        const socket = getSocket();
-        if(socket?.connected){
-            resolve(socket);
-        } else if(socket){
-            socket.once("connect", () => resolve(socket));
-        }else{
-            setTimeout(check,20);
-        }
-    };
-    check();
-  });
+    if (socket?.connected) {
+        return Promise.resolve(socket);
+    }
+
+    if (pendingSocketPromise) {
+        return pendingSocketPromise;
+    }
+    pendingSocketPromise = new Promise((resolve) => {
+        const check = () => {
+            const socket = getSocket();
+            if(socket?.connected){
+                resolve(socket);
+            } else if(socket){
+                socket.once("connect", () => resolve(socket));
+            }else{
+                setTimeout(check,20);
+            }
+        };
+        check();
+    });
+    pendingSocketPromise.then(() => {
+        pendingSocketPromise = null;
+    });
+
+    return pendingSocketPromise;
 }
 
 export function SocketProvider({children}: {children: React.ReactNode}){
@@ -63,6 +79,10 @@ export function SocketProvider({children}: {children: React.ReactNode}){
             dispatch({ type: "RECONNECTING" });
         });
 
+        socket.on(SERVER_EVENTS.ROOMS_RESTORED, (payload) => {
+            dispatch({ type: "ROOMS_RESTORED", rooms: payload.rooms });
+        });
+
         socket.on(SERVER_EVENTS.PRICE_UPDATE, (payload) => {
             dispatch({ type: "PRICE_UPDATE", payload });
         });
@@ -77,6 +97,14 @@ export function SocketProvider({children}: {children: React.ReactNode}){
 
         socket.on(SERVER_EVENTS.HISTORY_RESULT, (payload) => {
             dispatch({ type: "HISTORY_RESULT", trades: payload.trades });
+        });
+
+        socket.on(SERVER_EVENTS.BALANCE_UPDATED, (payload) => {
+            dispatch({ type: "BALANCE_UPDATED", balance: payload.balance });
+        });
+
+        socket.on(SERVER_EVENTS.ACCOUNT_STATE, (payload) => {
+            dispatch({ type: "ACCOUNT_STATE", payload });
         });
 
         socket.on(SERVER_EVENTS.RATE_LIMITED, (payload) => {
@@ -157,13 +185,13 @@ export function SocketProvider({children}: {children: React.ReactNode}){
         }
     }, []);
 
-    const trade = useCallback(async (token: RoomName, side: "buy" | "sell") => {
+    const trade = useCallback(async (token: RoomName, side: "buy" | "sell", quantity: number): Promise<TradeConfirm | null> => {
         const socket = await waitForConnection(() => socketRef.current);
 
         try {
             const res = await socket
                 .timeout(ACK_TIMEOUT_MS)
-                .emitWithAck(CLIENT_EVENTS.TRADE, { token, side });
+                .emitWithAck(CLIENT_EVENTS.TRADE, { token, side, quantity });
 
             if (!res.success) {
                 if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
@@ -203,21 +231,95 @@ export function SocketProvider({children}: {children: React.ReactNode}){
         }
     }, []);
 
+    const getAccountState = useCallback(async () => {
+        const socket = await waitForConnection(() => socketRef.current);
+
+        try {
+            const res = await socket
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.GET_ACCOUNT_STATE);
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            if (res.data) dispatch({ type: "ACCOUNT_STATE", payload: res.data });
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to account state request" },
+            });
+        }
+    }, []);
+
+    const getPositionHistory = useCallback(async (token: RoomName) => {
+        const socket = await waitForConnection(() => socketRef.current);
+
+        try {
+            const res = await socket
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.GET_POSITION_HISTORY, { token });
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            if (res.data) {
+                dispatch({ type: "POSITION_HISTORY_RESULT", token: res.data.token, positions: res.data.positions });
+            }
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to position history request" },
+            });
+        }
+    }, []);
+
+    const getTradeHistory = useCallback(async (token: RoomName) => {
+        const socket = await waitForConnection(() => socketRef.current);
+
+        try {
+            const res = await socket
+                .timeout(ACK_TIMEOUT_MS)
+                .emitWithAck(CLIENT_EVENTS.GET_TRADE_HISTORY, { token });
+
+            if (!res.success) {
+                if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
+                return;
+            }
+
+            if (res.data) {
+                dispatch({ type: "TRADE_HISTORY_RESULT", token: res.data.token, trades: res.data.trades });
+            }
+        } catch {
+            dispatch({
+                type: "SERVER_ERROR",
+                payload: { code: "TIMEOUT", message: "Server did not respond to trade history request" },
+            });
+        }
+    }, []);
+    
+
     return (
-        <SocketContext.Provider value={{ state, joinRoom, leaveRoom, getPrice, trade, fetchHistory }}>
+        <SocketContext.Provider 
+            value={
+                { state, joinRoom, leaveRoom, getPrice, trade, fetchHistory, getAccountState, getPositionHistory, getTradeHistory }
+            }>
             {children}
         </SocketContext.Provider>
     );
 }
 
 export function useSocketContext(): SocketContextValue {
-  const context = useContext(SocketContext );
+    const context = useContext(SocketContext );
 
-  if (!context) {
-    throw new Error(
-      "useSocketContext must be used inside SocketProvider"
-    );
-  }
+    if (!context) {
+        throw new Error(
+        "useSocketContext must be used inside SocketProvider"
+        );
+    }
 
-  return context;
+    return context;
 }

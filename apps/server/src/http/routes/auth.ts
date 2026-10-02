@@ -54,7 +54,7 @@ router.post("/login", validate(loginSchema), async(req: TypedRequest<Omit<ReqBod
     }
 });
 
-router.post("/auth/refresh", async (req, res) => {
+router.post("/refresh", async (req, res) => {
     const incomingToken = req.cookies?.refresh_token;
     if (!incomingToken) return res.status(401).json({ error: "No refresh token" });
     const tokenHash = hashToken(incomingToken);
@@ -117,6 +117,7 @@ router.get("/me", requireAuth, async (req: TypedRequest, res) => {
 
 router.post("/logout", async (req, res) => {
     const incomingToken = req.cookies?.refresh_token;
+    console.log("l here")
     if (incomingToken) {
         await pool.query(
             `UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1`,

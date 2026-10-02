@@ -6,6 +6,7 @@
   "scripts": {
     "dev:server": "tsx watch src/server.ts",
     "dev:client": "tsx watch src/client.ts",
+    "test:trade-flow": "tsx src/scripts/test-trade-flow.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -25,8 +26,9 @@
     "bcrypt": "^6.0.0",
     "cookie": "^0.7.2",
     "cookie-parser": "^1.4.7",
+    "decimal.js": "^10.6.0",
     "dotenv": "^17.4.2",
-    "pg": "^8.21.0",
+    "pg": "^8.23.0",
     "readline": "^1.3.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
@@ -39,6 +41,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.3",
     "@types/pg": "^8.20.0"
   }
 }

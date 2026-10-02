@@ -17,5 +17,6 @@ export const env = {
     WS_PORT: Number(requireEnv("WS_PORT")),
     CLIENT_URL: requireEnv("CLIENT_URL") as string,
     REFRESH_TOKEN_MAX_AGE: requireEnv("REFRESH_TOKEN_MAX_AGE"),
-    ACCESS_TOKEN_MAX_AGE: requireEnv("ACCESS_TOKEN_MAX_AGE")
+    ACCESS_TOKEN_MAX_AGE: requireEnv("ACCESS_TOKEN_MAX_AGE"),
+    WS_URL: requireEnv("WS_URL")
 }

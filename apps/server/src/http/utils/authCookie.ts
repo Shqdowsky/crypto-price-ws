@@ -4,13 +4,13 @@ import pool from "../../config/db.js";
 import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
-import type { PublicUser } from "@system-monitor/shared";
+import type { PublicUser } from "@crypto-price-ws/shared";
 
 const isProd = process.env.NODE_ENV === "production";
 
 const ACCESS_TOKEN_MAX_AGE = Number(env.ACCESS_TOKEN_MAX_AGE) * 60 * 1000;
 const REFRESH_TOKEN_MAX_AGE = Number(env.REFRESH_TOKEN_MAX_AGE) * 24 * 60 * 60 * 1000;
-
+    
 const COOKIE_OPTIONS: CookieOptions  = {
   httpOnly: true,
   secure: isProd,
@@ -32,7 +32,7 @@ function setRefreshCookie(res: Response, token: string) {
     path: "/auth/refresh",
   });
 }
-
+    
 function clearAuthCookies(res: Response) {
   res.clearCookie("token", { ...COOKIE_OPTIONS, path: "/" });
   res.clearCookie("refresh_token", { ...COOKIE_OPTIONS, path: "/auth/refresh" });
@@ -49,16 +49,17 @@ async function issueTokens(res: Response, user: PublicUser) {
   const familyId = randomUUID();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_MAX_AGE);
   const MAX_SESSIONS_PER_USER = 5;
-
-  await pool.query("BEGIN");
+  const client = await pool.connect();
   try {
-    await pool.query(
+    await client.query("BEGIN");
+
+    await client.query(
       `INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at)
        VALUES ($1, $2, $3, $4)`,
       [user.id, hashToken(refreshToken), familyId, expiresAt]
     );
 
-    await pool.query(
+    await client.query(
       `DELETE FROM refresh_tokens
        WHERE user_id = $1
          AND id NOT IN (
@@ -70,10 +71,12 @@ async function issueTokens(res: Response, user: PublicUser) {
       [user.id, MAX_SESSIONS_PER_USER]
     );
 
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
   } catch (err) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK");
     throw err;
+  } finally {
+    client.release();
   }
 
   setAccessCookie(res, accessToken);
