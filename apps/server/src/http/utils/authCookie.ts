@@ -8,8 +8,8 @@ import type { PublicUser } from "@crypto-price-ws/shared";
 
 const isProd = process.env.NODE_ENV === "production";
 
-const ACCESS_TOKEN_MAX_AGE = Number(env.ACCESS_TOKEN_MAX_AGE) * 60 * 1000;
-const REFRESH_TOKEN_MAX_AGE = Number(env.REFRESH_TOKEN_MAX_AGE) * 24 * 60 * 60 * 1000;
+export const ACCESS_TOKEN_MAX_AGE = Number(env.ACCESS_TOKEN_MAX_AGE) * 60 * 1000;
+export const REFRESH_TOKEN_MAX_AGE = Number(env.REFRESH_TOKEN_MAX_AGE) * 24 * 60 * 60 * 1000;
     
 const COOKIE_OPTIONS: CookieOptions  = {
   httpOnly: true,

@@ -6,17 +6,19 @@ import {
 import type {PublicUser} from "@crypto-price-ws/shared";
 import { env } from '../config/env';
 import type { LoginCredentials, RegisterCredentials } from '../types/auth';
+import { authFetch } from '../utils/authFetch';
 
 export function useAuthQuery(){
     return useQuery({
         queryKey: ["auth", "me"],
         queryFn: async () => {
-            const res = await fetch(`${env.VITE_SERVER_URL}/auth/me`, { credentials: "include", });
+            const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
             if (!res.ok) throw new Error("unauthenticated");
             return res.json() as Promise<PublicUser>;
         },
         retry: false,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 2 * 60 * 1000,
+        refetchInterval: 2 * 60 * 1000,
     });
 }
 

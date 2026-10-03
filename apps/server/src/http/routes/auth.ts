@@ -4,7 +4,7 @@ import { AppError, isPgError, type ErrorResponse, type PgError } from "@crypto-p
 import type { PublicUser, ReqBody } from "@crypto-price-ws/shared";
 import {validate} from "../middleware/validate.js";
 import { registerSchema, loginSchema } from "../../schemas/auth.schema.js";
-import { setAccessCookie, clearAuthCookies, setRefreshCookie, issueTokens } from "../utils/authCookie.js";
+import { setAccessCookie, clearAuthCookies, setRefreshCookie, issueTokens, REFRESH_TOKEN_MAX_AGE } from "../utils/authCookie.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import pool from "../../config/db.js";
 import { generateRefreshToken, hashToken } from "../utils/refreshToken.js";
@@ -58,12 +58,13 @@ router.post("/refresh", async (req, res) => {
     const incomingToken = req.cookies?.refresh_token;
     if (!incomingToken) return res.status(401).json({ error: "No refresh token" });
     const tokenHash = hashToken(incomingToken);
-
+    console.log(tokenHash)
     const { rows } = await pool.query(
         `SELECT * FROM refresh_tokens WHERE token_hash = $1`,
         [tokenHash]
     );
     const record = rows[0];
+    console.log(record)
 
     if (!record) {
         return res.status(401).json({ error: "Invalid refresh token" });
@@ -89,16 +90,16 @@ router.post("/refresh", async (req, res) => {
         { expiresIn: "15m" }
     );
     const newRefreshToken = generateRefreshToken();
-    const newExpiresAt = new Date(Date.now() + Number(env.REFRESH_TOKEN_MAX_AGE));
+    const newExpiresAt = new Date(Date.now() + Number(REFRESH_TOKEN_MAX_AGE));
+
+    setAccessCookie(res, newAccessToken);
+    setRefreshCookie(res, newRefreshToken);
 
     await pool.query(
         `INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at)
         VALUES ($1, $2, $3, $4)`,
         [user.id, hashToken(newRefreshToken), record.family_id, newExpiresAt]
     );
-
-    setAccessCookie(res, newAccessToken);
-    setRefreshCookie(res, newRefreshToken);
 
     res.json(user);
 
