@@ -21,7 +21,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-*.sql
 *.dump
 *.backup
 
