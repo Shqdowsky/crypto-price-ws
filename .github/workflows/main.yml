@@ -1,0 +1,45 @@
+name: Server Tests
+
+on:
+  push:
+    branches: 
+      - main
+      - development
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: crypto_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: npm run build --workspace=apps/shared
+
+      - name: Run server tests
+        run: npm run test --workspace=apps/server
