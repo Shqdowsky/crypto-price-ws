@@ -8,7 +8,11 @@
     "dev:client": "tsx watch src/client.ts",
     "test:trade-flow": "tsx src/scripts/test-trade-flow.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate": "ts-node src/scripts/migrate.ts",
+    "test": "vitest run",
+    "migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
+    "pretest": "npm run migrate:test"
   },
   "repository": {
     "type": "git",
@@ -42,6 +46,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.3",
-    "@types/pg": "^8.20.0"
+    "@types/pg": "^8.20.0",
+    "vitest": "^5.0.3"
   }
 }

@@ -2,7 +2,6 @@ import type { AccountState, RoomName, PositionRow, Position } from "@crypto-pric
 import pool from "../../config/db.js";
 import { toPositionDTO } from "./trade.service.js";
 
-
 export async function getAccountState(userId: number): Promise<AccountState>{
     const [userRes, posRes, closedRes] = await Promise.all([
         pool.query<{ balance: string }>(

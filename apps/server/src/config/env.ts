@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config();
+if (process.env.NODE_ENV !== "test") {
+    dotenv.config();
+}
 
 function requireEnv(key: string): string | number{
     const value = process.env[key];

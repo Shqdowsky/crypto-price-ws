@@ -1,7 +1,5 @@
 import {Pool} from "pg";
 import { env } from "./env.js";
-import {configDotenv} from "dotenv";
-configDotenv();
 
 const pool = new Pool({
     host: env.DB_HOST as string,
@@ -12,14 +10,16 @@ const pool = new Pool({
     max: 50
 });
 
-pool.connect((err, client, release) => {
-    if(err){
-        console.error('Database connection failed:', err);
-        process.exit(1)
-    }else{
-        console.log('Database connected successfully ✅');
-        release();
-    }
-});
+if (process.env.NODE_ENV !== "test") {
+    pool.connect((err, client, release) => {
+        if(err){
+            console.error('Database connection failed:', err);
+            process.exit(1)
+        }else{
+            console.log('Database connected successfully ✅');
+            release();
+        }
+    });
+}
 
 export default pool;
