@@ -9,6 +9,20 @@ on:
     branches: [main]
 
 jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+
+      - name: Type check
+        run: npm run typecheck --workspaces --if-present
   test:
     runs-on: ubuntu-latest
 
@@ -28,18 +42,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Set up Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared package
-        run: npm run build --workspace=apps/shared
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
 
       - name: Run server tests
         run: npm run test --workspace=apps/server
