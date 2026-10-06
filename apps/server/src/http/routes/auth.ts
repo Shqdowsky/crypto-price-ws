@@ -20,7 +20,11 @@ import { env } from "../../config/env.js";
 
 const router = Router();
 
-type TypedRequest<B = unknown, P extends Record<string, string> = Record<string, string>, Q = unknown> = Request<P, unknown, B, Q> & {
+type TypedRequest<
+  B = unknown,
+  P extends Record<string, string> = Record<string, string>,
+  Q = unknown,
+> = Request<P, unknown, B, Q> & {
   user?: PublicUser;
 };
 

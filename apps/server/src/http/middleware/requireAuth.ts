@@ -3,7 +3,11 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 
-type TypedRequest<B = unknown, P extends Record<string, string> = Record<string, string>, Q = unknown> = Request<P, unknown, B, Q> & {
+type TypedRequest<
+  B = unknown,
+  P extends Record<string, string> = Record<string, string>,
+  Q = unknown,
+> = Request<P, unknown, B, Q> & {
   user?: PublicUser;
 };
 

@@ -9,7 +9,7 @@ import {
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-  SocketData
+  SocketData,
 } from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
 import {

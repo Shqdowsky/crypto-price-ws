@@ -16,8 +16,8 @@ export default defineConfig([
       globals: globals.node,
     },
     rules: {
-        '@typescript-eslint/no-empty-object-type': 'off',
-    }
+      "@typescript-eslint/no-empty-object-type": "off",
+    },
   },
 
   eslintConfigPrettier,
