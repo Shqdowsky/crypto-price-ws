@@ -15,9 +15,10 @@ export function RegisterPage() {
   const registerMutation = useRegisterMutation();
   const [credentials, setCredentials] = useState<RegisterCredentials>(initialCredentials);
 
-  const handleChange = (field: keyof RegisterCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials((prev) => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleChange =
+    (field: keyof RegisterCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCredentials((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

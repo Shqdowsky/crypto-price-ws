@@ -3,32 +3,42 @@ import bcrypt from "bcrypt";
 import { AppError } from "@crypto-price-ws/shared";
 import { type IUser, type PublicUser } from "@crypto-price-ws/shared";
 
-export async function register(username: string, email: string, password: string): Promise<PublicUser>{
-    const hashpass = await bcrypt.hash(password, 10);
-    const result = await pool.query(`
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+): Promise<PublicUser> {
+  const hashpass = await bcrypt.hash(password, 10);
+  const result = await pool.query(
+    `
         INSERT INTO users(username, email, password)
         VALUES($1, $2, $3)
         RETURNING id, username, email
-    `,[username, email, hashpass])
-    const user = result.rows[0];
-    if (!user){
-        throw new AppError( "Some error with user registration", 401 );
-    }
-    return user;
+    `,
+    [username, email, hashpass],
+  );
+  const user = result.rows[0];
+  if (!user) {
+    throw new AppError("Some error with user registration", 401);
+  }
+  return user;
 }
-export async function login(email: string, password: string): Promise<PublicUser>{
-    const result = await pool.query<IUser>("SELECT id, username, email, password FROM users WHERE email = $1", [email]);
-    const candidate = result.rows[0];
-    if(!candidate){
-        throw new AppError("Such user doesn't exist", 400);
-    }
-    const isPassEquals = await bcrypt.compare(password, candidate.password);
-    if(!isPassEquals){
-        throw new AppError("Pasword doesn't match", 400);
-    }
-    return {
-        id: candidate.id,
-        username: candidate.username,
-        email: candidate.email,
-    }
+export async function login(email: string, password: string): Promise<PublicUser> {
+  const result = await pool.query<IUser>(
+    "SELECT id, username, email, password FROM users WHERE email = $1",
+    [email],
+  );
+  const candidate = result.rows[0];
+  if (!candidate) {
+    throw new AppError("Such user doesn't exist", 400);
+  }
+  const isPassEquals = await bcrypt.compare(password, candidate.password);
+  if (!isPassEquals) {
+    throw new AppError("Pasword doesn't match", 400);
+  }
+  return {
+    id: candidate.id,
+    username: candidate.username,
+    email: candidate.email,
+  };
 }

@@ -23,12 +23,12 @@ const JWT_TOKEN = "";
 const TOKENS = ["btc", "eth", "sol", "doge"];
 
 export const options = {
-stages: [
-    { duration: '20s', target: 100  },
-    { duration: '30s', target: 500  },
-    { duration: '30s', target: 1000 },
-    { duration: '45s', target: 1000 },
-    { duration: '15s', target: 0    },
+  stages: [
+    { duration: "20s", target: 100 },
+    { duration: "30s", target: 500 },
+    { duration: "30s", target: 1000 },
+    { duration: "45s", target: 1000 },
+    { duration: "15s", target: 0 },
   ],
   thresholds: {
     connection_success_rate: ["rate>0.95"],
@@ -51,7 +51,7 @@ export default function () {
   const token = randomToken();
   const joinedAt = Date.now();
 
-  let priceUpdatesCount  = 0;
+  let priceUpdatesCount = 0;
   let tradeConfirmedFlag = false;
   let tradeSentAt = null;
   let subscribeSentAt = null;
@@ -64,8 +64,7 @@ export default function () {
 
       let handshakeDone = false;
 
-      socket.on("open", () => {
-      });
+      socket.on("open", () => {});
 
       socket.on("message", (raw) => {
         console.log(`[msg received] ${raw}`);
@@ -90,7 +89,7 @@ export default function () {
         if (raw.startsWith("40") && handshakeDone) {
           subscribeSentAt = Date.now();
           socket.send(`42["subscribe","${token}"]`);
-          console.log(`[sent] subscribe to ${token}`); 
+          console.log(`[sent] subscribe to ${token}`);
           return;
         }
 
@@ -113,9 +112,7 @@ export default function () {
             if (priceUpdatesCount === 3 && !tradeSentAt) {
               tradeSentAt = Date.now();
               const side = Math.random() > 0.5 ? "buy" : "sell";
-              socket.send(
-                `42["trade:execute",${JSON.stringify({ token, side })}]`
-              );
+              socket.send(`42["trade:execute",${JSON.stringify({ token, side })}]`);
             }
 
             if (priceUpdatesCount >= 5) {
@@ -171,7 +168,7 @@ export default function () {
       socket.setTimeout(() => {
         socket.close();
       }, 20000);
-    }
+    },
   );
 
   check(res, {

@@ -65,24 +65,24 @@ disconnect ───────────────────► clearRat
 
 ### Client → Server
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `subscribe` | `RoomName` | Join a token room, receive immediate current price |
-| `unsubscribe` | `RoomName` | Leave a token room |
-| `price:get` | `RoomName` | Request current price on demand (rate limited) |
-| `trade:execute` | `{ token: RoomName, side: 'buy' \| 'sell' }` | Execute a trade at the current live price |
-| `trade:history` | — | Fetch all trades for the authenticated user |
+| Event           | Payload                                      | Description                                        |
+| --------------- | -------------------------------------------- | -------------------------------------------------- |
+| `subscribe`     | `RoomName`                                   | Join a token room, receive immediate current price |
+| `unsubscribe`   | `RoomName`                                   | Leave a token room                                 |
+| `price:get`     | `RoomName`                                   | Request current price on demand (rate limited)     |
+| `trade:execute` | `{ token: RoomName, side: 'buy' \| 'sell' }` | Execute a trade at the current live price          |
+| `trade:history` | —                                            | Fetch all trades for the authenticated user        |
 
 ### Server → Client
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `price:update` | `TokenPayload` | Broadcast to room every tick (1s) |
-| `price:current` | `TokenPayload` | Response to `subscribe` or `price:get` |
-| `trade:confirm` | `TradeConfirm` | Trade written to DB successfully |
-| `trade:history:result` | `{ trades: TradeRow[] }` | Trade history result |
-| `rate-limited` | `{ retryAfterMs: number }` | Rate limit exceeded on `price:get` |
-| `error:general` | `{ code: string, message: string }` | Server-side error |
+| Event                  | Payload                             | Description                            |
+| ---------------------- | ----------------------------------- | -------------------------------------- |
+| `price:update`         | `TokenPayload`                      | Broadcast to room every tick (1s)      |
+| `price:current`        | `TokenPayload`                      | Response to `subscribe` or `price:get` |
+| `trade:confirm`        | `TradeConfirm`                      | Trade written to DB successfully       |
+| `trade:history:result` | `{ trades: TradeRow[] }`            | Trade history result                   |
+| `rate-limited`         | `{ retryAfterMs: number }`          | Rate limit exceeded on `price:get`     |
+| `error:general`        | `{ code: string, message: string }` | Server-side error                      |
 
 ---
 
@@ -99,7 +99,8 @@ DB_NAME=crypto_ws
 DB_USER=postgres
 DB_PASSWORD=your_db_password
 ```
-### Console client 
+
+### Console client
 
 Available commands once connected:
 
@@ -165,12 +166,12 @@ Load tested with [k6](https://k6.io) using raw WebSocket protocol against the so
 
 ### Results
 
-| VUs | Connection rate | Trade success | Trade p(95) | Trade max | Price p(95) |
-|-----|----------------|---------------|-------------|-----------|-------------|
-| 300 | 100% | 100% | 143ms | 255ms | 43ms |
-| 500 | 100% | 100% | 129ms | 246ms | 37ms |
-| 750 | 100% | 100% | 132ms | 194ms | 39ms |
-| 1000 | 100% | 100% | 152ms | 232ms | 51ms |
+| VUs  | Connection rate | Trade success | Trade p(95) | Trade max | Price p(95) |
+| ---- | --------------- | ------------- | ----------- | --------- | ----------- |
+| 300  | 100%            | 100%          | 143ms       | 255ms     | 43ms        |
+| 500  | 100%            | 100%          | 129ms       | 246ms     | 37ms        |
+| 750  | 100%            | 100%          | 132ms       | 194ms     | 39ms        |
+| 1000 | 100%            | 100%          | 152ms       | 232ms     | 51ms        |
 
 ### Observations
 
@@ -196,19 +197,18 @@ Load tested with [k6](https://k6.io) using raw WebSocket protocol against the so
 - PostgreSQL local install, `max_connections` default (100)
 - PostgreSQL pool `max: 50`
 
-
 ## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js 18+ |
-| Language | TypeScript |
-| WebSocket server | socket.io v4 |
-| HTTP framework | Express |
-| Database | PostgreSQL + node-postgres (pg) |
-| Authentication | JWT (jsonwebtoken) + bcrypt |
-| Validation | Zod |
-| Load testing | k6 |
+| Layer            | Technology                      |
+| ---------------- | ------------------------------- |
+| Runtime          | Node.js 18+                     |
+| Language         | TypeScript                      |
+| WebSocket server | socket.io v4                    |
+| HTTP framework   | Express                         |
+| Database         | PostgreSQL + node-postgres (pg) |
+| Authentication   | JWT (jsonwebtoken) + bcrypt     |
+| Validation       | Zod                             |
+| Load testing     | k6                              |
 
 ---
 

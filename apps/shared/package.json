@@ -12,7 +12,9 @@
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.6.3"

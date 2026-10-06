@@ -1,59 +1,55 @@
-import {
-    useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import type {PublicUser} from "@crypto-price-ws/shared";
-import { env } from '../config/env';
-import type { LoginCredentials, RegisterCredentials } from '../types/auth';
-import { authFetch } from '../utils/authFetch';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { PublicUser } from "@crypto-price-ws/shared";
+import { env } from "../config/env";
+import type { LoginCredentials, RegisterCredentials } from "../types/auth";
+import { authFetch } from "../utils/authFetch";
 
-export function useAuthQuery(){
-    return useQuery({
-        queryKey: ["auth", "me"],
-        queryFn: async () => {
-            const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
-            if (!res.ok) throw new Error("unauthenticated");
-            return res.json() as Promise<PublicUser>;
-        },
-        retry: false,
-        staleTime: 2 * 60 * 1000,
-        refetchInterval: 2 * 60 * 1000,
-    });
+export function useAuthQuery() {
+  return useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: async () => {
+      const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
+      if (!res.ok) throw new Error("unauthenticated");
+      return res.json() as Promise<PublicUser>;
+    },
+    retry: false,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+  });
 }
 
-export function useLoginMutation(){
-    const queryClient = useQueryClient();
+export function useLoginMutation() {
+  const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (credentials: LoginCredentials) => {
-            const res = await fetch(`${env.VITE_SERVER_URL}/auth/login`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(credentials),
-            });
-            if (!res.ok) throw new Error((await res.json()).message);
-            return res.json();
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })
-    })
+  return useMutation({
+    mutationFn: async (credentials: LoginCredentials) => {
+      const res = await fetch(`${env.VITE_SERVER_URL}/auth/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  });
 }
 
-export function useLogoutMutation(){
-    const queryClient = useQueryClient();
+export function useLogoutMutation() {
+  const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async () => {
-            const res = await fetch(`${env.VITE_SERVER_URL}/auth/logout`, {
-                method: "POST",
-                credentials: "include"
-            });
-            if (!res.ok) throw new Error((await res.json()).message);
-            return res.json();
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })
-    })
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${env.VITE_SERVER_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  });
 }
 
 export function useRegisterMutation() {
