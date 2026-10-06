@@ -12,9 +12,10 @@ export function LoginPage() {
   const loginMutation = useLoginMutation();
   const [credentials, setCredentials] = useState<LoginCredentials>(initialCredentials);
 
-  const handleChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials((prev) => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleChange =
+    (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCredentials((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

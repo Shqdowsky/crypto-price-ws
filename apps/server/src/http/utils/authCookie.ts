@@ -1,4 +1,4 @@
-import type {   Response, CookieOptions  } from "express";
+import type { Response, CookieOptions } from "express";
 import { generateRefreshToken, hashToken } from "./refreshToken.js";
 import pool from "../../config/db.js";
 import { randomUUID } from "node:crypto";
@@ -10,18 +10,18 @@ const isProd = process.env.NODE_ENV === "production";
 
 export const ACCESS_TOKEN_MAX_AGE = Number(env.ACCESS_TOKEN_MAX_AGE) * 60 * 1000;
 export const REFRESH_TOKEN_MAX_AGE = Number(env.REFRESH_TOKEN_MAX_AGE) * 24 * 60 * 60 * 1000;
-    
-const COOKIE_OPTIONS: CookieOptions  = {
+
+const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: isProd ? "strict" : "lax", 
-}
+  sameSite: isProd ? "strict" : "lax",
+};
 
-function setAccessCookie(res: Response, token: string ) {
+function setAccessCookie(res: Response, token: string) {
   res.cookie("token", token, {
     ...COOKIE_OPTIONS,
     maxAge: ACCESS_TOKEN_MAX_AGE,
-    path: "/"
+    path: "/",
   });
 }
 
@@ -32,18 +32,14 @@ function setRefreshCookie(res: Response, token: string) {
     path: "/auth/refresh",
   });
 }
-    
+
 function clearAuthCookies(res: Response) {
   res.clearCookie("token", { ...COOKIE_OPTIONS, path: "/" });
   res.clearCookie("refresh_token", { ...COOKIE_OPTIONS, path: "/auth/refresh" });
 }
 
 async function issueTokens(res: Response, user: PublicUser) {
-  const accessToken = jwt.sign(
-    user,
-    process.env.JWT_SECRET as string,
-    { expiresIn: "15m" }
-  );
+  const accessToken = jwt.sign(user, process.env.JWT_SECRET as string, { expiresIn: "15m" });
 
   const refreshToken = generateRefreshToken();
   const familyId = randomUUID();
@@ -56,7 +52,7 @@ async function issueTokens(res: Response, user: PublicUser) {
     await client.query(
       `INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at)
        VALUES ($1, $2, $3, $4)`,
-      [user.id, hashToken(refreshToken), familyId, expiresAt]
+      [user.id, hashToken(refreshToken), familyId, expiresAt],
     );
 
     await client.query(
@@ -68,7 +64,7 @@ async function issueTokens(res: Response, user: PublicUser) {
            ORDER BY created_at DESC
            LIMIT $2
          )`,
-      [user.id, MAX_SESSIONS_PER_USER]
+      [user.id, MAX_SESSIONS_PER_USER],
     );
 
     await client.query("COMMIT");

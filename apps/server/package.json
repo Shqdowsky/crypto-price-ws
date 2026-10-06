@@ -12,7 +12,9 @@
     "migrate": "ts-node src/scripts/migrate.ts",
     "test": "vitest run",
     "migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
-    "pretest": "npm run migrate:test"
+    "pretest": "npm run migrate:test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
