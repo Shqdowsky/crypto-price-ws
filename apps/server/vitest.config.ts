@@ -1,20 +1,15 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-    test: {
+  test: {
     environment: "node",
     setupFiles: ["./src/test/env-setup.ts"],
     testTimeout: 10000,
-        coverage: {
-            provider: "v8",
-            reporter: ["text", "html", "lcov"],
-            reportsDirectory: "./coverage",
-            exclude: [
-                "src/test/**",
-                "src/scripts/**",
-                "**/*.test.ts",
-                "src/config/env.ts",
-            ],
-        },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      exclude: ["src/test/**", "src/scripts/**", "**/*.test.ts", "src/config/env.ts"],
     },
+  },
 });
