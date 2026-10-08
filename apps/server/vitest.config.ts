@@ -7,6 +7,7 @@ export default defineConfig({
     testTimeout: 10000,
     coverage: {
       provider: "v8",
+      reportOnFailure: true,
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "./coverage",
       exclude: ["src/test/**", "src/scripts/**", "**/*.test.ts", "src/config/env.ts"],
