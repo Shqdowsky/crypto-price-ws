@@ -23,6 +23,16 @@ jobs:
 
       - name: Type check
         run: npm run typecheck --workspaces --if-present
+  
+  client-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+ 
+      - name: Run client tests
+        run: npm run test --workspace=apps/client
+  
   test:
     runs-on: ubuntu-latest
 
@@ -47,3 +57,10 @@ jobs:
 
       - name: Run server tests
         run: npm run test --workspace=apps/server
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage-report
+          path: apps/server/coverage/
+          retention-days: 14
