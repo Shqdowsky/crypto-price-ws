@@ -10,9 +10,11 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "ts-node src/scripts/migrate.ts",
-    "test": "vitest run",
     "migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
     "pretest": "npm run migrate:test",
+    "pretest:coverage": "npm run migrate:test",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -49,6 +51,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.3",
     "@types/pg": "^8.20.0",
+    "@vitest/coverage-v8": "^5.0.3",
     "vitest": "^5.0.3"
   }
 }

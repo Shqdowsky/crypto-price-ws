@@ -6,7 +6,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   test: {
-    setupFiles: ["./src/context/socket/socketReducer.test.ts"],
     environment: "jsdom",
   },
 });
