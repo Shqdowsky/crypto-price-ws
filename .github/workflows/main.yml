@@ -55,8 +55,8 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
 
-      - name: Run server tests
-        run: npm run test --workspace=apps/server
+      - name: Run server tests with coverage
+        run: npm run test:coverage --workspace=apps/server
       - name: Upload coverage report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
