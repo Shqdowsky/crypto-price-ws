@@ -1,0 +1,18 @@
+name: Setup workspace
+description: Checkout-independent Node setup, install, and shared build
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v5
+      with:
+        node-version: "24"
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+      shell: bash
+
+    - name: Build shared package
+      run: npm run build --workspace=apps/shared
+      shell: bash
