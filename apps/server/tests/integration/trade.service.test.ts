@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, afterAll } from "vitest";
-import { executeTrade } from "./trade.service.js";
-import { createTestUser, deleteTestUsers } from "../../test/helpers.js";
-import pool from "../../config/db.js";
+import { executeTrade } from "../../src/socket/services/trade.service.js";
+import { createTestUser, deleteTestUsers } from "../support/helpers.js";
+import pool from "../../src/config/db.js";
 
 const TOKEN = "btc";
 let createdUserIds: number[] = [];

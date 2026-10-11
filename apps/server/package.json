@@ -7,7 +7,6 @@
     "dev:server": "tsx watch src/server.ts",
     "dev:client": "tsx watch src/client.ts",
     "test:trade-flow": "tsx src/scripts/test-trade-flow.ts",
-    "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "ts-node src/scripts/migrate.ts",
     "migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
@@ -16,6 +15,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
@@ -36,10 +36,10 @@
     "cookie-parser": "^1.4.7",
     "decimal.js": "^10.6.0",
     "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0",
     "readline": "^1.3.0",
     "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "tsx": "^4.22.4",
     "zod": "^4.4.3"
   },
@@ -52,6 +52,7 @@
     "@types/node": "^26.6.3",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^5.0.3",
+    "socket.io-client": "^4.8.4",
     "vitest": "^5.0.3"
   }
 }
