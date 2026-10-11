@@ -7,7 +7,6 @@
     "dev:server": "tsx watch src/server.ts",
     "dev:client": "tsx watch src/client.ts",
     "test:trade-flow": "tsx src/scripts/test-trade-flow.ts",
-    "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "ts-node src/scripts/migrate.ts",
     "migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
@@ -16,6 +15,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "repository": {

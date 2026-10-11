@@ -12,6 +12,7 @@ import type {
 import { env } from "./config/env.js";
 import { gracefulShutdown } from "./socket/utils/shutdown.js";
 import pool from "./config/db.js";
+import { pruneRateLimits } from "./socket/middleware/rate-limit.middleware.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
   cors: {
@@ -32,6 +33,8 @@ startPriceLoop((room, state) => {
     timestamp: state.updatedAt,
   });
 });
+
+setInterval(pruneRateLimits, 60_000).unref();
 
 httpserver.listen(env.WS_PORT, () => {
   console.log(`Server running on port ${env.WS_PORT}`);

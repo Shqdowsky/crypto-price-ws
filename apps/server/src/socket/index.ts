@@ -6,7 +6,7 @@ import {
   type SocketData,
 } from "@crypto-price-ws/shared";
 import type { Socket, Server } from "socket.io";
-import { clearRateLimit } from "./middleware/rate-limit.middleware.js";
+import { rateLimitPacketMiddleware } from "./middleware/rate-limit.middleware.js";
 import { registerTradeHandlers } from "./handlers/trade.handler.js";
 import { registerSocketHandlers } from "./handlers/socket.handlers.js";
 import { cleanupSocket } from "./utils/shutdown.js";
@@ -19,6 +19,7 @@ type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketDa
 
 export function setupSocketServer(io: AppServer): void {
   io.on("connection", async (socket: AppSocket) => {
+    socket.use(rateLimitPacketMiddleware(socket));
     console.log(`Socket connected: ${socket.id} (user ${socket.data.user?.id})`);
     const rooms = await getRoomSubscriptions(socket.data.user.id);
     const validRooms = rooms.filter(isValidRoom) as RoomName[];
@@ -36,7 +37,6 @@ export function setupSocketServer(io: AppServer): void {
 
     socket.on("disconnect", (reason) => {
       console.log(`Socket disconnected: ${socket.id} (${reason})`);
-      clearRateLimit(socket.id);
       cleanupSocket(socket.id);
     });
   });

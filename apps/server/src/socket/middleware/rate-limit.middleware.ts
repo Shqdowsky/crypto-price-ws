@@ -1,4 +1,13 @@
-import { RATE_LIMIT } from "@crypto-price-ws/shared";
+import type { Socket } from "socket.io";
+import {
+  RATE_LIMIT,
+  SERVER_EVENTS,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
+  type SocketData,
+} from "@crypto-price-ws/shared";
+
+type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export class TokenBucket {
   private tokens: number;
@@ -35,21 +44,45 @@ export class TokenBucket {
     }
     return Math.ceil((1 - this.tokens) / this.refilRate) * 1000;
   }
+
+  isFull(): boolean {
+    this._refill();
+    return this.tokens >= this.capacity;
+  }
 }
 
-const clientBuckets = new Map<string, TokenBucket>();
+const clientBuckets = new Map<number, TokenBucket>();
 
-export function checkRateLimit(socketId: string): { allowed: boolean; retryAfterMs: number } {
-  let bucket = clientBuckets.get(socketId);
+export function checkRateLimit(userId: number): { allowed: boolean; retryAfterMs: number } {
+  let bucket = clientBuckets.get(userId);
   if (!bucket) {
     bucket = new TokenBucket(RATE_LIMIT.MAX_REQUESTS, RATE_LIMIT.REFILL_RATE);
-    clientBuckets.set(socketId, bucket);
+    clientBuckets.set(userId, bucket);
   }
 
   const allowed = bucket.consume();
   return { allowed, retryAfterMs: allowed ? 0 : bucket.retryAfterMs() };
 }
 
-export function clearRateLimit(socketId: string): void {
-  clientBuckets.delete(socketId);
+export function pruneRateLimits(): void {
+  for (const [userId, bucket] of clientBuckets) {
+    if (bucket.isFull()) clientBuckets.delete(userId);
+  }
 }
+
+export function rateLimitPacketMiddleware(socket: AppSocket) {
+  return ([, ...args]: [string, ...unknown[]], next: (err?: Error) => void): void => {
+    const { allowed, retryAfterMs } = checkRateLimit(socket.data.user.id);
+    if (allowed) return next();
+
+    socket.emit(SERVER_EVENTS.RATE_LIMITED, { retryAfterMs });
+    const ack = args[args.length - 1];
+    if (typeof ack === "function") {
+      ack({ success: false, error: { code: "RATE_LIMITED", message: "Too many requests" } });
+    }
+  };
+}
+
+// export function clearRateLimit(socketId: string): void {
+//   clientBuckets.delete(socketId);
+// }
