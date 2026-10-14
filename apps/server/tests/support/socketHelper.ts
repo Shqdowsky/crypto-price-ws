@@ -6,6 +6,7 @@ import {
   type AckResponse,
   type PublicUser,
   type RoomName,
+  type UserRole,
 } from "@crypto-price-ws/shared";
 import { env } from "../../src/config/env.js";
 
@@ -13,6 +14,7 @@ const DEFAULT_TIMEOUT_MS = 3000;
 
 interface MintOptions {
   secret?: string;
+  role?: UserRole;
   expiredSecondsAgo?: number;
 }
 
@@ -21,6 +23,7 @@ export function mintToken(userId: number, options: MintOptions = {}): string {
     id: userId,
     username: `user_${userId}`,
     email: `user_${userId}@example.com`,
+    role: options.role ?? "user",
   };
   const secret = options.secret ?? (env.JWT_SECRET as string);
 

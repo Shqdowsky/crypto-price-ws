@@ -12,7 +12,6 @@ type TypedRequest<
 };
 
 export function requireAuth(req: TypedRequest, res: Response, next: NextFunction) {
-  console.log("trying  to validate", req.cookies);
   const token = req.cookies?.token;
   if (!token) return res.status(401).json({ error: "Not authenticated" });
 

@@ -25,7 +25,7 @@ export async function register(
 }
 export async function login(email: string, password: string): Promise<PublicUser> {
   const result = await pool.query<IUser>(
-    "SELECT id, username, email, password FROM users WHERE email = $1",
+    "SELECT id, username, email, password, role FROM users WHERE email = $1",
     [email],
   );
   const candidate = result.rows[0];
@@ -40,5 +40,6 @@ export async function login(email: string, password: string): Promise<PublicUser
     id: candidate.id,
     username: candidate.username,
     email: candidate.email,
+    role: candidate.role
   };
 }
