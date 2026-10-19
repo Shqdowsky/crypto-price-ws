@@ -28,7 +28,6 @@ export function AdminUsersPage() {
   return (
     <div className="admin-users">
       <h1>Users</h1>
-
       <label htmlFor="admin-user-search">Search by username or email</label>{" "}
       <input
         id="admin-user-search"
@@ -36,10 +35,8 @@ export function AdminUsersPage() {
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
       />
-
       {error && <p role="alert">Could not load users: {error.message}</p>}
       {isPending && !error && <p>Loading users...</p>}
-
       {data && (
         <div aria-busy={isFetching}>
           <p>

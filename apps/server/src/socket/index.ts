@@ -13,12 +13,15 @@ import { cleanupSocket } from "./utils/shutdown.js";
 import { getRoomSubscriptions } from "./services/room-subscription.service.js";
 import { isValidRoom } from "./utils/room-check.js";
 import { getAccountState } from "./services/account.service.js";
+import { initNotifier, userRoom } from "./notifier.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
-type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
+export type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function setupSocketServer(io: AppServer): void {
+  initNotifier(io);
   io.on("connection", async (socket: AppSocket) => {
+    socket.join(userRoom(socket.data.user.id));
     socket.use(rateLimitPacketMiddleware(socket));
     console.log(`Socket connected: ${socket.id} (user ${socket.data.user?.id})`);
     const rooms = await getRoomSubscriptions(socket.data.user.id);

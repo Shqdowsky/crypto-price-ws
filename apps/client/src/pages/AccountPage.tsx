@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { RoomName } from "@crypto-price-ws/shared";
 import { useSocketContext } from "../context/socket/SocketProvider";
 import { Link } from "react-router";
+import { FundingSection } from "../components/FundingSection";
 
 export function AccountPage() {
   const { state, getPrice } = useSocketContext();
@@ -50,6 +51,7 @@ export function AccountPage() {
 
   return (
     <div className="account-page">
+      <FundingSection />
       <h1>Account</h1>
 
       <div className="account-summary">

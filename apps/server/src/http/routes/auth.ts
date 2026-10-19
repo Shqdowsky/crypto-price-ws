@@ -125,7 +125,7 @@ router.post("/refresh", async (req, res) => {
 
 router.get("/me", requireAuth, async (req: TypedRequest, res) => {
   const user = req.user ? await findUserById(req.user.id) : null;
-  console.log("U", user)
+  console.log("U", user);
   if (!user) return res.status(401).json({ error: "Not authenticated" });
   res.json({ user });
 });

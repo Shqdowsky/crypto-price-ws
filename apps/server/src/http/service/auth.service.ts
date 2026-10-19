@@ -40,6 +40,6 @@ export async function login(email: string, password: string): Promise<PublicUser
     id: candidate.id,
     username: candidate.username,
     email: candidate.email,
-    role: candidate.role
+    role: candidate.role,
   };
 }

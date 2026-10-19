@@ -1,6 +1,7 @@
 import { CLIENT_EVENTS, SERVER_EVENTS, type RoomName } from "../constants.js";
 import type { PublicUser } from "./user.type.js";
 import type { ErrorResponse } from "./error.js";
+import { FundingReviewed } from "./funding.js";
 
 export interface TokenPayload {
   token: RoomName;
@@ -100,6 +101,7 @@ export interface ServerToClientEvents {
   [SERVER_EVENTS.ERROR]: (payload: ErrorResponse) => void;
   [SERVER_EVENTS.ROOMS_RESTORED]: (payload: { rooms: RoomName[] }) => void;
   [SERVER_EVENTS.ACCOUNT_STATE]: (payload: AccountState) => void;
+  [SERVER_EVENTS.FUNDING_REVIEWED]: (payload: FundingReviewed) => void;
 }
 
 export interface ClientToServerEvents {

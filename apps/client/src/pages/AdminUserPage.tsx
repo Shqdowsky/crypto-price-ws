@@ -128,7 +128,6 @@ export function AdminUserPage() {
 
           <section>
             <h2>Trades</h2>
-
             <label htmlFor="admin-trades-token">Token</label>{" "}
             <select
               id="admin-trades-token"
@@ -142,10 +141,8 @@ export function AdminUserPage() {
                 </option>
               ))}
             </select>
-
             {trades.error && <p role="alert">Could not load trades: {trades.error.message}</p>}
             {trades.isPending && !trades.error && <p>Loading trades...</p>}
-
             {trades.data &&
               (trades.data.length === 0 ? (
                 <p>No trades.</p>

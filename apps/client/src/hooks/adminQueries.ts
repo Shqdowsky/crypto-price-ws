@@ -9,18 +9,18 @@ import { env } from "../config/env";
 import { authFetch } from "../utils/authFetch";
 
 async function getJson<T>(path: string): Promise<T> {
-    const res = await authFetch(`${env.VITE_SERVER_URL}${path}`);
-    if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? `Request failed (${res.status})`);
-    }
-    return (await res.json()) as T;
+  const res = await authFetch(`${env.VITE_SERVER_URL}${path}`);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Request failed (${res.status})`);
+  }
+  return (await res.json()) as T;
 }
 
 export interface AdminUsersParams {
-    search: string;
-    page: number;
-    pageSize: number;
+  search: string;
+  page: number;
+  pageSize: number;
 }
 
 export function useAdminUsers({ search, page, pageSize }: AdminUsersParams) {
@@ -38,23 +38,23 @@ export function useAdminUsers({ search, page, pageSize }: AdminUsersParams) {
 }
 
 export function useAdminUser(userId: number | null) {
-    return useQuery({
-        queryKey: ["admin", "user", userId],
-        queryFn: () => getJson<AdminUserDetail>(`/admin/users/${userId}`),
-        enabled: userId !== null,
-        retry: false,
-    });
+  return useQuery({
+    queryKey: ["admin", "user", userId],
+    queryFn: () => getJson<AdminUserDetail>(`/admin/users/${userId}`),
+    enabled: userId !== null,
+    retry: false,
+  });
 }
 
 export function useAdminUserTrades(userId: number | null, token: RoomName | "") {
-    return useQuery({
-        queryKey: ["admin", "user", userId, "trades", token],
-        queryFn: () =>
-            getJson<TradeHistoryEntry[]>(
-                `/admin/users/${userId}/trades${token ? `?token=${token}` : ""}`,
-            ),
-        enabled: userId !== null,
-        placeholderData: keepPreviousData,
-        retry: false,
-    });
+  return useQuery({
+    queryKey: ["admin", "user", userId, "trades", token],
+    queryFn: () =>
+      getJson<TradeHistoryEntry[]>(
+        `/admin/users/${userId}/trades${token ? `?token=${token}` : ""}`,
+      ),
+    enabled: userId !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
 }
