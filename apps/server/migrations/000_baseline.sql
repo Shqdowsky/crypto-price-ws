@@ -5,14 +5,15 @@
 -- Dumped from database version 16.1
 -- Dumped by pg_dump version 16.1
 
--- Started on 2026-10-04 12:12:27
+-- Started on 2026-10-19 01:19:10
+
 --
 -- TOC entry 5 (class 2615 OID 2200)
 -- Name: public; Type: SCHEMA; Schema: -; Owner: pg_database_owner
 --
 
 --
--- TOC entry 4934 (class 0 OID 0)
+-- TOC entry 4962 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
 --
@@ -23,6 +24,46 @@ COMMENT ON SCHEMA public IS 'standard public schema';
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- TOC entry 226 (class 1259 OID 49562)
+-- Name: funding_requests; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.funding_requests (
+    id bigint NOT NULL,
+    user_id integer NOT NULL,
+    amount numeric(20,2) NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    reason text,
+    reviewed_by integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    reviewed_at timestamp with time zone,
+    CONSTRAINT funding_requests_amount_check CHECK (((amount >= (1000)::numeric) AND (amount <= (5000)::numeric))),
+    CONSTRAINT funding_requests_check CHECK (((status = 'pending'::text) = (reviewed_at IS NULL))),
+    CONSTRAINT funding_requests_check1 CHECK (((status <> 'rejected'::text) OR ((reason IS NOT NULL) AND (length(btrim(reason)) > 0)))),
+    CONSTRAINT funding_requests_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'cancelled'::text])))
+);
+
+--
+-- TOC entry 225 (class 1259 OID 49561)
+-- Name: funding_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.funding_requests_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 4963 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: funding_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
 
 --
 -- TOC entry 223 (class 1259 OID 33169)
@@ -64,7 +105,7 @@ CREATE SEQUENCE public.positions_id_seq
 
 
 --
--- TOC entry 4935 (class 0 OID 0)
+-- TOC entry 4964 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: positions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -101,6 +142,7 @@ CREATE TABLE public.trades (
     quantity numeric(20,8) DEFAULT 1 NOT NULL,
     CONSTRAINT trades_side_check CHECK (((side)::text = ANY ((ARRAY['buy'::character varying, 'sell'::character varying])::text[])))
 );
+
 --
 -- TOC entry 218 (class 1259 OID 24911)
 -- Name: trades_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -116,11 +158,23 @@ CREATE SEQUENCE public.trades_id_seq
 
 
 --
--- TOC entry 4936 (class 0 OID 0)
+-- TOC entry 4965 (class 0 OID 0)
 -- Dependencies: 218
 -- Name: trades_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
+
+--
+-- TOC entry 224 (class 1259 OID 49553)
+-- Name: treasury; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.treasury (
+    id boolean DEFAULT true NOT NULL,
+    balance numeric(20,2) NOT NULL,
+    CONSTRAINT treasury_balance_check CHECK ((balance >= (0)::numeric)),
+    CONSTRAINT treasury_id_check CHECK (id)
+);
 
 --
 -- TOC entry 221 (class 1259 OID 33154)
@@ -133,7 +187,6 @@ CREATE TABLE public.user_room_subscriptions (
     joined_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
 --
 -- TOC entry 217 (class 1259 OID 24904)
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
@@ -145,7 +198,9 @@ CREATE TABLE public.users (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    balance numeric(20,2) DEFAULT 1000.00 NOT NULL
+    balance numeric(20,2) DEFAULT 1000.00 NOT NULL,
+    role text DEFAULT 'user'::text NOT NULL,
+    CONSTRAINT users_role_valid CHECK ((role = ANY (ARRAY['user'::text, 'admin'::text])))
 );
 
 --
@@ -161,15 +216,24 @@ CREATE SEQUENCE public.users_id_seq
     NO MAXVALUE
     CACHE 1;
 
+
 --
--- TOC entry 4937 (class 0 OID 0)
+-- TOC entry 4966 (class 0 OID 0)
 -- Dependencies: 216
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 
 --
--- TOC entry 4752 (class 2604 OID 33172)
+-- TOC entry 4771 (class 2604 OID 49565)
+-- Name: funding_requests id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.funding_requests ALTER COLUMN id SET DEFAULT nextval('public.funding_requests_id_seq'::regclass);
+
+
+--
+-- TOC entry 4762 (class 2604 OID 33172)
 -- Name: positions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -177,7 +241,7 @@ ALTER TABLE ONLY public.positions ALTER COLUMN id SET DEFAULT nextval('public.po
 
 
 --
--- TOC entry 4746 (class 2604 OID 24915)
+-- TOC entry 4756 (class 2604 OID 24915)
 -- Name: trades id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -185,7 +249,7 @@ ALTER TABLE ONLY public.trades ALTER COLUMN id SET DEFAULT nextval('public.trade
 
 
 --
--- TOC entry 4743 (class 2604 OID 24907)
+-- TOC entry 4752 (class 2604 OID 24907)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -193,7 +257,16 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 4780 (class 2606 OID 33186)
+-- TOC entry 4806 (class 2606 OID 49575)
+-- Name: funding_requests funding_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.funding_requests
+    ADD CONSTRAINT funding_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4801 (class 2606 OID 33186)
 -- Name: positions positions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -202,7 +275,7 @@ ALTER TABLE ONLY public.positions
 
 
 --
--- TOC entry 4774 (class 2606 OID 25000)
+-- TOC entry 4795 (class 2606 OID 25000)
 -- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -211,7 +284,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- TOC entry 4770 (class 2606 OID 24919)
+-- TOC entry 4791 (class 2606 OID 24919)
 -- Name: trades trades_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -220,7 +293,16 @@ ALTER TABLE ONLY public.trades
 
 
 --
--- TOC entry 4776 (class 2606 OID 33161)
+-- TOC entry 4803 (class 2606 OID 49560)
+-- Name: treasury treasury_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.treasury
+    ADD CONSTRAINT treasury_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4797 (class 2606 OID 33161)
 -- Name: user_room_subscriptions user_room_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -229,7 +311,7 @@ ALTER TABLE ONLY public.user_room_subscriptions
 
 
 --
--- TOC entry 4765 (class 2606 OID 24926)
+-- TOC entry 4786 (class 2606 OID 24926)
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -238,7 +320,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4767 (class 2606 OID 24910)
+-- TOC entry 4788 (class 2606 OID 24910)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -247,7 +329,15 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4777 (class 1259 OID 33193)
+-- TOC entry 4804 (class 1259 OID 49587)
+-- Name: funding_one_pending_per_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX funding_one_pending_per_user ON public.funding_requests USING btree (user_id) WHERE (status = 'pending'::text);
+
+
+--
+-- TOC entry 4798 (class 1259 OID 33193)
 -- Name: idx_positions_user_closed; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -255,7 +345,7 @@ CREATE INDEX idx_positions_user_closed ON public.positions USING btree (user_id,
 
 
 --
--- TOC entry 4771 (class 1259 OID 25007)
+-- TOC entry 4792 (class 1259 OID 25007)
 -- Name: idx_refresh_tokens_family_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -263,7 +353,7 @@ CREATE INDEX idx_refresh_tokens_family_id ON public.refresh_tokens USING btree (
 
 
 --
--- TOC entry 4772 (class 1259 OID 25006)
+-- TOC entry 4793 (class 1259 OID 25006)
 -- Name: idx_refresh_tokens_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -271,7 +361,7 @@ CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (us
 
 
 --
--- TOC entry 4768 (class 1259 OID 33202)
+-- TOC entry 4789 (class 1259 OID 33202)
 -- Name: idx_trades_position_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -279,7 +369,7 @@ CREATE INDEX idx_trades_position_id ON public.trades USING btree (position_id);
 
 
 --
--- TOC entry 4778 (class 1259 OID 33192)
+-- TOC entry 4799 (class 1259 OID 33192)
 -- Name: one_open_position_per_user_token; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -287,7 +377,25 @@ CREATE UNIQUE INDEX one_open_position_per_user_token ON public.positions USING b
 
 
 --
--- TOC entry 4785 (class 2606 OID 33187)
+-- TOC entry 4812 (class 2606 OID 49581)
+-- Name: funding_requests funding_requests_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.funding_requests
+    ADD CONSTRAINT funding_requests_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id);
+
+
+--
+-- TOC entry 4813 (class 2606 OID 49576)
+-- Name: funding_requests funding_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.funding_requests
+    ADD CONSTRAINT funding_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- TOC entry 4811 (class 2606 OID 33187)
 -- Name: positions positions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -296,7 +404,7 @@ ALTER TABLE ONLY public.positions
 
 
 --
--- TOC entry 4783 (class 2606 OID 25001)
+-- TOC entry 4809 (class 2606 OID 25001)
 -- Name: refresh_tokens refresh_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -305,7 +413,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- TOC entry 4781 (class 2606 OID 33197)
+-- TOC entry 4807 (class 2606 OID 33197)
 -- Name: trades trades_position_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -314,7 +422,7 @@ ALTER TABLE ONLY public.trades
 
 
 --
--- TOC entry 4782 (class 2606 OID 24920)
+-- TOC entry 4808 (class 2606 OID 24920)
 -- Name: trades trades_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -323,7 +431,7 @@ ALTER TABLE ONLY public.trades
 
 
 --
--- TOC entry 4784 (class 2606 OID 33162)
+-- TOC entry 4810 (class 2606 OID 33162)
 -- Name: user_room_subscriptions user_room_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -331,7 +439,7 @@ ALTER TABLE ONLY public.user_room_subscriptions
     ADD CONSTRAINT user_room_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
--- Completed on 2026-10-04 12:12:27
+-- Completed on 2026-10-19 01:19:10
 
 --
 -- PostgreSQL database dump complete

@@ -31,6 +31,7 @@ export const SERVER_EVENTS = {
   ROOMS_RESTORED: "rooms:restore",
   BALANCE_UPDATED: "balance:update",
   ACCOUNT_STATE: "account:state",
+  FUNDING_REVIEWED: "funding:reviewed",
 } as const;
 
 export type ClientEvent = (typeof CLIENT_EVENTS)[keyof typeof CLIENT_EVENTS];

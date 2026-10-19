@@ -124,15 +124,8 @@ router.post("/refresh", async (req, res) => {
 });
 
 router.get("/me", requireAuth, async (req: TypedRequest, res) => {
-  const result = await pool.query(
-    `
-        Select id, username, email
-        From users
-        Where id = $1
-    `,
-    [req.user?.id],
-  );
-  const user = result.rows[0] ?? null;
+  const user = req.user ? await findUserById(req.user.id) : null;
+  console.log("U", user);
   if (!user) return res.status(401).json({ error: "Not authenticated" });
   res.json({ user });
 });

@@ -10,7 +10,8 @@ export function useAuthQuery() {
     queryFn: async () => {
       const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
       if (!res.ok) throw new Error("unauthenticated");
-      return res.json() as Promise<PublicUser>;
+      const data: { user: PublicUser } = await res.json();
+      return data.user;
     },
     retry: false,
     staleTime: 2 * 60 * 1000,
@@ -48,7 +49,11 @@ export function useLogoutMutation() {
       if (!res.ok) throw new Error((await res.json()).message);
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      queryClient.removeQueries({ queryKey: ["admin"] });
+      queryClient.removeQueries({ queryKey: ["funding"] });
+    },
   });
 }
 

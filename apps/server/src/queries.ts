@@ -4,7 +4,7 @@ import pool from "./config/db.js";
 export async function findUserById(id: number): Promise<PublicUser | null> {
   const result = await pool.query(
     `
-        Select id, username, email
+        Select id, username, email, role
         From users
         Where id = $1
     `,

@@ -13,6 +13,7 @@ import { env } from "./config/env.js";
 import { gracefulShutdown } from "./socket/utils/shutdown.js";
 import pool from "./config/db.js";
 import { pruneRateLimits } from "./socket/middleware/rate-limit.middleware.js";
+import { initNotifier } from "./socket/notifier.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
   cors: {
@@ -24,6 +25,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData
 io.use(socketAuthMiddleware);
 
 setupSocketServer(io);
+initNotifier(io);
 
 initTokenMap();
 startPriceLoop((room, state) => {

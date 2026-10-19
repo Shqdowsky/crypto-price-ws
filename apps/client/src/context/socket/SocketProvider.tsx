@@ -10,6 +10,10 @@ import {
   type ServerToClientEvents,
   type TradeConfirm,
 } from "@crypto-price-ws/shared";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { FundingRequest } from "@crypto-price-ws/shared";
+import { MY_FUNDING_KEY } from "../../hooks/fundingQueries";
 
 const WS_URL = import.meta.env.VITE_SERVER_URL;
 const ACK_TIMEOUT_MS = Number(import.meta.env.VITE_ACK_TIMEOUT_MS) || 5000;
@@ -25,6 +29,8 @@ interface SocketContextValue {
   getAccountState: () => void;
   getPositionHistory: (token: RoomName) => void;
   getTradeHistory: (token: RoomName) => void;
+  fundingNotice: FundingRequest | null;
+  dismissFundingNotice: () => void;
 }
 
 const SocketContext = createContext<SocketContextValue | null>(null);
@@ -62,6 +68,9 @@ function waitForConnection(getSocket: () => ClientSocket | null): Promise<Client
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(socketReducer, initialSocketState);
+  const queryClient = useQueryClient();
+  const [fundingNotice, setFundingNotice] = useState<FundingRequest | null>(null);
+  const dismissFundingNotice = useCallback(() => setFundingNotice(null), []);
   const socketRef = useRef<ClientSocket | null>(null);
 
   useEffect(() => {
@@ -113,6 +122,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socket.on(SERVER_EVENTS.ACCOUNT_STATE, (payload) => {
       dispatch({ type: "ACCOUNT_STATE", payload });
+    });
+
+    socket.on(SERVER_EVENTS.FUNDING_REVIEWED, ({ request }) => {
+      console.log("got funding notise from server ", request);
+      setFundingNotice(request);
+      void queryClient.invalidateQueries({ queryKey: MY_FUNDING_KEY });
     });
 
     socket.on(SERVER_EVENTS.RATE_LIMITED, (payload) => {
@@ -326,6 +341,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         getAccountState,
         getPositionHistory,
         getTradeHistory,
+        fundingNotice,
+        dismissFundingNotice,
       }}
     >
       {children}
