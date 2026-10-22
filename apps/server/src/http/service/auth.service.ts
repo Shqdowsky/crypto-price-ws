@@ -1,6 +1,6 @@
 import pool from "../../config/db.js";
 import bcrypt from "bcrypt";
-import { AppError } from "@crypto-price-ws/shared";
+import { AppError, InvalidCredentialsError } from "@crypto-price-ws/shared";
 import { type IUser, type PublicUser } from "@crypto-price-ws/shared";
 
 export async function register(
@@ -23,19 +23,17 @@ export async function register(
   }
   return user;
 }
+
+const DUMMY_HASH = bcrypt.hashSync("dummy-password", 10);
+
 export async function login(email: string, password: string): Promise<PublicUser> {
   const result = await pool.query<IUser>(
     "SELECT id, username, email, password, role FROM users WHERE email = $1",
     [email],
   );
   const candidate = result.rows[0];
-  if (!candidate) {
-    throw new AppError("Such user doesn't exist", 400);
-  }
-  const isPassEquals = await bcrypt.compare(password, candidate.password);
-  if (!isPassEquals) {
-    throw new AppError("Pasword doesn't match", 400);
-  }
+  const isPassEquals = await bcrypt.compare(password, candidate?.password ?? DUMMY_HASH);
+  if (!candidate || !isPassEquals) throw new InvalidCredentialsError();
   return {
     id: candidate.id,
     username: candidate.username,

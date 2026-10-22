@@ -8,6 +8,12 @@ export class AppError extends Error {
   }
 }
 
+export class InvalidCredentialsError extends AppError {
+  constructor() {
+    super("Invalid email or password", 401);
+  }
+}
+
 export class TradeError extends Error {
   constructor(
     public code:

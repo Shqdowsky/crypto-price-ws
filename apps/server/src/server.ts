@@ -14,6 +14,7 @@ import { gracefulShutdown } from "./socket/utils/shutdown.js";
 import pool from "./config/db.js";
 import { pruneRateLimits } from "./socket/middleware/rate-limit.middleware.js";
 import { initNotifier } from "./socket/notifier.js";
+import { pruneLoginThrottle } from "./http/service/login-throttle.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
   cors: {
@@ -37,6 +38,7 @@ startPriceLoop((room, state) => {
 });
 
 setInterval(pruneRateLimits, 60_000).unref();
+setInterval(pruneLoginThrottle, 60_000).unref();
 
 httpserver.listen(env.WS_PORT, () => {
   console.log(`Server running on port ${env.WS_PORT}`);
