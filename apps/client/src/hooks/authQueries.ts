@@ -4,6 +4,19 @@ import { env } from "../config/env";
 import type { LoginCredentials, RegisterCredentials } from "../types/auth";
 import { authFetch } from "../utils/authFetch";
 
+export class LoginError extends Error {
+  readonly status: number;
+  readonly attemptsLeft?: number;
+  readonly retryAfterSeconds?: number;
+
+  constructor(message: string, status: number, attemptsLeft?: number, retryAfterSeconds?: number) {
+    super(message);
+    this.status = status;
+    this.attemptsLeft = attemptsLeft;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 export function useAuthQuery() {
   return useQuery({
     queryKey: ["auth", "me"],
@@ -30,7 +43,15 @@ export function useLoginMutation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
       });
-      if (!res.ok) throw new Error((await res.json()).message);
+      if (!res.ok) {
+        const body = await res.json();
+        throw new LoginError(
+          body?.message ?? `Login failed (${res.status})`,
+          res.status,
+          body?.attemptsLeft,
+          body?.retryAfterSeconds,
+        );
+      }
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),

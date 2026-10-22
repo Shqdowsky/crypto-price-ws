@@ -1,7 +1,9 @@
 import type { LoginCredentials } from "../types/auth";
 import { useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { useLoginMutation } from "../hooks/authQueries";
+import { LoginError, useLoginMutation } from "../hooks/authQueries";
+import { formatCountdown, useCountdown } from "../hooks/useCountdown";
+import { PasswordInput } from "../components/PasswordInput";
 
 const initialCredentials: LoginCredentials = {
   email: "",
@@ -11,6 +13,10 @@ const initialCredentials: LoginCredentials = {
 export function LoginPage() {
   const loginMutation = useLoginMutation();
   const [credentials, setCredentials] = useState<LoginCredentials>(initialCredentials);
+  const { secondsLeft, start } = useCountdown();
+  const locked = secondsLeft > 0;
+  const error = loginMutation.error;
+  const isLockError = error instanceof LoginError && error.retryAfterSeconds !== undefined;
 
   const handleChange =
     (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +29,9 @@ export function LoginPage() {
     try {
       await loginMutation.mutateAsync(credentials);
     } catch (err) {
-      console.log(err);
+      if (err instanceof LoginError && err.retryAfterSeconds !== undefined) {
+        start(err.retryAfterSeconds);
+      }
     }
   };
 
@@ -42,23 +50,30 @@ export function LoginPage() {
         />
       </div>
 
-      <div>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={credentials.password}
-          onChange={handleChange("password")}
-          required
-        />
-      </div>
+      <PasswordInput
+        label="Password"
+        value={credentials.password}
+        onChange={(password) => setCredentials((prev) => ({ ...prev, password }))}
+        autoComplete="current-password"
+        required
+      />
 
-      {loginMutation.isError && <ErrorMessage error={loginMutation.error} />}
+      {locked && (
+        <p role="alert">Too many failed attempts. Try again in {formatCountdown(secondsLeft)}.</p>
+      )}
+      {error &&
+        !isLockError &&
+        (error instanceof LoginError && error.attemptsLeft !== undefined ? (
+          <p role="alert">
+            {error.message}. {error.attemptsLeft}{" "}
+            {error.attemptsLeft === 1 ? "attempt" : "attempts"} left.
+          </p>
+        ) : (
+          <ErrorMessage error={error} />
+        ))}
 
-      <button type="submit" disabled={loginMutation.isPending}>
-        {loginMutation.isPending ? "Logging in..." : "Log in"}
+      <button type="submit" disabled={loginMutation.isPending || locked}>
+        {loginMutation.isPending ? "Logging in..." : locked ? "Locked" : "Log in"}
       </button>
     </form>
   );

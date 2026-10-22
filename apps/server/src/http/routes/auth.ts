@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { register, login } from "../service/auth.service.js";
-import { AppError, isPgError, type ErrorResponse } from "@crypto-price-ws/shared";
+import { AppError, isPgError, InvalidCredentialsError } from "@crypto-price-ws/shared";
 import type { PublicUser, ReqBody } from "@crypto-price-ws/shared";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema } from "../../schemas/auth.schema.js";
@@ -17,6 +17,7 @@ import { generateRefreshToken, hashToken } from "../utils/refreshToken.js";
 import { findUserById } from "../../queries.js";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
+import { checkLock, recordFailure, recordSuccess } from "../service/login-throttle.js";
 
 const router = Router();
 
@@ -51,19 +52,48 @@ router.post(
     }
   },
 );
+
+interface LoginErrorBody {
+  message: string;
+  attemptsLeft?: number;
+  retryAfterSeconds?: number;
+}
+
+function sendLocked(res: Response<PublicUser | LoginErrorBody>, retryAfterMs: number): void {
+  const retryAfterSeconds = Math.ceil(retryAfterMs / 1000);
+  res.set("Retry-After", String(retryAfterSeconds));
+  res.status(429).json({ message: "Too many failed attempts", retryAfterSeconds });
+}
+
 router.post(
   "/login",
   validate(loginSchema),
   async (
     req: TypedRequest<Omit<ReqBody, "username">>,
-    res: Response<PublicUser | Omit<ErrorResponse, "code">>,
+    res: Response<PublicUser | LoginErrorBody>,
   ): Promise<void> => {
+    const { email, password } = req.body;
+    const ip = req.ip ?? "unknown";
     try {
-      const { email, password } = req.body;
+      const lock = checkLock(email, ip);
+      if (lock.locked) {
+        sendLocked(res, lock.retryAfterMs);
+        return;
+      }
       const user = await login(email, password);
+      recordSuccess(email, ip);
       await issueTokens(res, user);
       res.json(user);
     } catch (error) {
+      if (error instanceof InvalidCredentialsError) {
+        const failure = recordFailure(email, ip);
+        if (failure.locked) {
+          sendLocked(res, failure.retryAfterMs);
+          return;
+        }
+        res.status(401).json({ message: error.message, attemptsLeft: failure.attemptsLeft });
+        return;
+      }
       console.error(error);
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
