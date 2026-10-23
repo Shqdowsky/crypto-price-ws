@@ -232,6 +232,40 @@ describe("trade rejections (through the real handler)", () => {
     expect(ack.error?.code).toBe(code);
   });
 
+  it("buy all spends the whole balance without rounding errors, sell all closes the position", async () => {
+    const userId = await newUser("1000.00");
+    const { client } = await connectClient(url, userId);
+
+    const buy = dataOf(await trade(client, "sol", "buy", "all"));
+    expect(buy.position).toMatchObject({ status: "open", quantity: "14.28571428" });
+    expect(await client.waitFor<{ balance: string }>(SERVER_EVENTS.BALANCE_UPDATED)).toEqual({
+      balance: "0.00",
+    });
+
+    setPrice("sol", 80);
+    const sell = dataOf(await trade(client, "sol", "sell", "all"));
+    expect(sell.position).toMatchObject({ status: "closed", quantity: "0.00000000" });
+    expect(await client.waitFor<{ balance: string }>(SERVER_EVENTS.BALANCE_UPDATED)).toEqual({
+      balance: "1142.86",
+    });
+  });
+
+  it("sell all with no open position is rejected", async () => {
+    const userId = await newUser();
+    const { client } = await connectClient(url, userId);
+    const ack = await trade(client, "sol", "sell", "all");
+    expect(ack.success).toBe(false);
+    expect(ack.error?.code).toBe("NO_OPEN_POSITION");
+  });
+
+  it("buy all with a zero balance is rejected", async () => {
+    const userId = await newUser("0.00");
+    const { client } = await connectClient(url, userId);
+    const ack = await trade(client, "sol", "buy", "all");
+    expect(ack.success).toBe(false);
+    expect(ack.error?.code).toBe("INSUFFICIENT_BALANCE");
+  });
+
   it("rejects a trade when no price is available for the token", async () => {
     prices.delete("sol");
     const userId = await newUser();

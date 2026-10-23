@@ -54,7 +54,9 @@ export function registerTradeHandlers(socket: AppSocket): void {
       return;
     }
 
-    if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) {
+    const isAll = quantity === "all";
+
+    if (!isAll && !(typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0)) {
       callback({
         success: false,
         error: { code: "INVALID_QUANTITY", message: "Quantity must be a positive number" },

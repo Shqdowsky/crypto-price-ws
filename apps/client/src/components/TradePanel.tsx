@@ -27,7 +27,12 @@ export function TradePanel({ token }: TradePanelProps) {
     return balance / price;
   }, [side, price, balance, heldQty]);
 
-  const quantity = (maxQuantity * percent) / 100;
+  const floorTo8 = (n: number) => Math.floor(n * 1e8) / 1e8;
+
+  const quantity = floorTo8(maxQuantity * (percent / 100));
+
+  // What the server receives. At 100% the server works out the exact amount itself.
+  const quantityToSend: number | "all" = percent === 100 ? "all" : quantity;
 
   const handleSideChange = (nextSide: "buy" | "sell") => {
     setSide(nextSide);
@@ -38,8 +43,8 @@ export function TradePanel({ token }: TradePanelProps) {
     if (quantity <= 0 || pending) return;
     setPending(true);
     try {
-      await trade(token, side, quantity);
-      setPercent(0);
+      const result = await trade(token, side, quantityToSend);
+      if (result) setPercent(0);
     } catch (err) {
       console.error(err);
     } finally {

@@ -167,6 +167,7 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
         trades,
         openPositions,
         closedPositions,
+        lastError: null,
       };
     }
 
