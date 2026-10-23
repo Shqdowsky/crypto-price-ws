@@ -113,7 +113,7 @@ export interface ClientToServerEvents {
   ) => void;
   [CLIENT_EVENTS.HISTORY]: (callback: (res: AckResponse<{ trades: TradeRow[] }>) => void) => void;
   [CLIENT_EVENTS.TRADE]: (
-    payload: { token: RoomName; side: "buy" | "sell"; quantity: number },
+    payload: { token: RoomName; side: "buy" | "sell"; quantity: number | "all" },
     callback: (res: AckResponse<TradeConfirm>) => void,
   ) => void;
   [CLIENT_EVENTS.GET_ACCOUNT_STATE]: (callback: (res: AckResponse<AccountState>) => void) => void;

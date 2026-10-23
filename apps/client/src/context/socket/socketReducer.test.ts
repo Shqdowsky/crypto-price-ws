@@ -315,6 +315,23 @@ describe("TRADE_CONFIRM", () => {
     expect(before.openPositions.btc).toBeUndefined();
     expect(before.trades.btc).toBeUndefined();
   });
+
+  it("TRADE_CONFIRM clears a previous error", () => {
+    const withError = socketReducer(initialSocketState, {
+      type: "SERVER_ERROR",
+      payload: { code: "INSUFFICIENT_BALANCE", message: "Insufficient balance" },
+    });
+    expect(withError.lastError).not.toBeNull();
+
+    const confirm = makeTradeConfirm({
+      id: 10,
+      position: makePosition({ quantity: "10.00000000" }),
+    });
+
+    const next = socketReducer(withError, { type: "TRADE_CONFIRM", payload: confirm });
+
+    expect(next.lastError).toBeNull();
+  });
 });
 
 describe("ACCOUNT_STATE", () => {

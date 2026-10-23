@@ -24,7 +24,11 @@ interface SocketContextValue {
   joinRoom: (room: RoomName) => void;
   leaveRoom: (room: RoomName) => void;
   getPrice: (room: RoomName) => void;
-  trade: (token: RoomName, side: "buy" | "sell", quantity: number) => Promise<TradeConfirm | null>;
+  trade: (
+    token: RoomName,
+    side: "buy" | "sell",
+    quantity: number | "all",
+  ) => Promise<TradeConfirm | null>;
   fetchHistory: () => void;
   getAccountState: () => void;
   getPositionHistory: (token: RoomName) => void;
@@ -125,7 +129,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on(SERVER_EVENTS.FUNDING_REVIEWED, ({ request }) => {
-      console.log("got funding notise from server ", request);
       setFundingNotice(request);
       void queryClient.invalidateQueries({ queryKey: MY_FUNDING_KEY });
     });
@@ -210,8 +213,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     async (
       token: RoomName,
       side: "buy" | "sell",
-      quantity: number,
+      quantity: number | "all",
     ): Promise<TradeConfirm | null> => {
+      dispatch({ type: "CLEAR_ERROR" });
       const socket = await waitForConnection(() => socketRef.current);
 
       try {

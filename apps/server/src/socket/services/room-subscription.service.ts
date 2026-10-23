@@ -1,4 +1,4 @@
-import type { RoomName } from "@system-monitor/shared";
+import type { RoomName } from "@crypto-price-ws/shared";
 import pool from "../../config/db.js";
 
 export async function addRoomSubscription(userId: number, room: RoomName): Promise<void> {

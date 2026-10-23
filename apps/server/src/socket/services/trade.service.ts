@@ -32,11 +32,8 @@ export async function executeTrade(
   attempt = 0,
 ): Promise<TradeExecutionResult> {
   const { userId, token, side, price, qty } = params;
-  const qtyD = new Decimal(qty);
   const priceD = new Decimal(price);
 
-  if (side !== "buy" && side !== "sell") throw new Error(`Invalid side: ${side}`);
-  if (qtyD.lte(0)) throw new Error("Quantity must be positive");
   if (priceD.lte(0)) throw new Error("Price must be positive");
 
   const client = await pool.connect();
@@ -62,7 +59,24 @@ export async function executeTrade(
 
     const position: PositionRow | null = posRows[0] ?? null;
 
-    const cost = qtyD.times(priceD);
+    let qtyD: Decimal;
+
+    if (qty === "all") {
+      if (side === "buy") {
+        qtyD = currentBalance.div(priceD).toDecimalPlaces(8, Decimal.ROUND_DOWN);
+        if (qtyD.lte(0)) {
+          throw new TradeError("INSUFFICIENT_BALANCE", "Balance is too low to buy anything");
+        }
+      } else {
+        if (!position) throw new TradeError("NO_OPEN_POSITION", "No open position to sell");
+        qtyD = new Decimal(position.quantity);
+      }
+    } else {
+      qtyD = new Decimal(qty);
+      if (qtyD.lte(0)) throw new Error("Quantity must be positive");
+    }
+
+    const cost = qtyD.times(priceD).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
     let newBalance: Decimal;
     let updatedPosition: PositionRow;
@@ -212,6 +226,7 @@ async function applySell(
       ],
     );
     if (!update.rows[0]) {
+      console.error("Position update returned no rows");
       throw new Error("Position update returned no rows");
     }
     return update.rows[0]!;
@@ -234,6 +249,7 @@ async function applySell(
     ],
   );
   if (!update.rows[0]) {
+    console.error("Position 2 update returned no rows");
     throw new Error("Position update returned no rows");
   }
   return update.rows[0]!;
