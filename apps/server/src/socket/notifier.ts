@@ -16,9 +16,7 @@ export function notifyFundingReviewed(
 ): void {
   if (!io) return;
   try {
-    console.log("cought funding check notice");
     const target = io.to(userRoom(userId));
-    console.log("target", target);
     target.emit(SERVER_EVENTS.FUNDING_REVIEWED, { request });
     if (newBalance !== undefined) {
       target.emit(SERVER_EVENTS.BALANCE_UPDATED, { balance: newBalance });

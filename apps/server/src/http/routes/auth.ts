@@ -108,12 +108,10 @@ router.post("/refresh", async (req, res) => {
   const incomingToken = req.cookies?.refresh_token;
   if (!incomingToken) return res.status(401).json({ error: "No refresh token" });
   const tokenHash = hashToken(incomingToken);
-  console.log(tokenHash);
   const { rows } = await pool.query(`SELECT * FROM refresh_tokens WHERE token_hash = $1`, [
     tokenHash,
   ]);
   const record = rows[0];
-  console.log(record);
 
   if (!record) {
     return res.status(401).json({ error: "Invalid refresh token" });
@@ -155,14 +153,12 @@ router.post("/refresh", async (req, res) => {
 
 router.get("/me", requireAuth, async (req: TypedRequest, res) => {
   const user = req.user ? await findUserById(req.user.id) : null;
-  console.log("U", user);
   if (!user) return res.status(401).json({ error: "Not authenticated" });
   res.json({ user });
 });
 
 router.post("/logout", async (req, res) => {
   const incomingToken = req.cookies?.refresh_token;
-  console.log("l here");
   if (incomingToken) {
     await pool.query(`UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1`, [
       hashToken(incomingToken),

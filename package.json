@@ -29,5 +29,9 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check ."
+  },
+  "allowScripts": {
+    "bcrypt": true,
+    "esbuild": true
   }
 }
