@@ -24,8 +24,8 @@ const ROOM_BY_SYMBOL = new Map<string, RoomName>(
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 const STALE_AFTER_MS = 10_000;
-const SILENCE_LIMIT_MS = 3_000;
-const WATCHDOG_INTERVAL_MS = 3_000;
+const SILENCE_LIMIT_MS = 15_000;
+const WATCHDOG_INTERVAL_MS = 5_000;
 
 export function parseTickerMessage(raw: string): { room: RoomName; price: number } | null {
   let msg: unknown;
@@ -71,7 +71,7 @@ export function createBinanceSource(): PriceSource {
       stopped = false;
 
       const connect = () => {
-        const ws = new WebSocket(url);
+        const ws = new WebSocket(url, { handshakeTimeout: 10_000 });
         socket = ws;
         lastMessageAt = Date.now();
 
@@ -86,7 +86,10 @@ export function createBinanceSource(): PriceSource {
           if (parsed) onPrice(parsed.room, parsed.price);
         });
 
-        ws.on("error", (err) => console.error("Binance feed error:", err.message));
+        ws.on("error", (err) => {
+          if (socket === ws) socket = null;
+          console.error("Binance feed error:", err.message)
+        });
         ws.on("close", () => scheduleReconnect(connect));
       };
 

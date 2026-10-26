@@ -99,14 +99,11 @@ export interface ServerToClientEvents {
   [SERVER_EVENTS.BALANCE_UPDATED]: (payload: BalanceUpdate) => void;
   [SERVER_EVENTS.HISTORY_RESULT]: (payload: { trades: TradeRow[] }) => void;
   [SERVER_EVENTS.ERROR]: (payload: ErrorResponse) => void;
-  [SERVER_EVENTS.ROOMS_RESTORED]: (payload: { rooms: RoomName[] }) => void;
   [SERVER_EVENTS.ACCOUNT_STATE]: (payload: AccountState) => void;
   [SERVER_EVENTS.FUNDING_REVIEWED]: (payload: FundingReviewed) => void;
 }
 
 export interface ClientToServerEvents {
-  [CLIENT_EVENTS.SUBSCRIBE]: (room: RoomName, callback: (res: AckResponse) => void) => void;
-  [CLIENT_EVENTS.UNSUBSCRIBE]: (room: RoomName, callback: (res: AckResponse) => void) => void;
   [CLIENT_EVENTS.GET_PRICE]: (
     room: RoomName,
     callback: (res: AckResponse<TokenPayload>) => void,

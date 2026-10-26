@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import type { RoomName } from "@crypto-price-ws/shared";
 import { useSocketContext } from "../context/socket/SocketProvider";
 import { Link } from "react-router";
@@ -6,25 +5,15 @@ import { FundingSection } from "../components/FundingSection";
 
 export function AccountPage() {
   const { state, getPrice } = useSocketContext();
-  const pricesFetched = useRef(new Set<RoomName>());
 
-  const openEntries = Object.entries(state.openPositions) as [
-    RoomName,
-    (typeof state.openPositions)[RoomName],
-  ][];
-
-  useEffect(() => {
-    for (const [token] of openEntries) {
-      if (state.joinedRooms.has(token)) continue;
-      if (pricesFetched.current.has(token)) continue;
-      pricesFetched.current.add(token);
-      getPrice(token);
-    }
-  }, [openEntries, state.joinedRooms, getPrice]);
 
   const usdtBalance = Number(state.balance);
 
   let tokensValue = 0;
+  const openEntries = Object.entries(state.openPositions) as [
+    RoomName,
+    (typeof state.openPositions)[RoomName],
+  ][];
   const rows = openEntries
     .map(([token, position]) => {
       if (!position) return null;

@@ -4,7 +4,6 @@ import { io, type Socket } from "socket.io-client";
 import {
   CLIENT_EVENTS,
   SERVER_EVENTS,
-  type AckResponse,
   type ClientToServerEvents,
   type RoomName,
   type ServerToClientEvents,
@@ -21,8 +20,6 @@ const ACK_TIMEOUT_MS = Number(import.meta.env.VITE_ACK_TIMEOUT_MS) || 5000;
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 interface SocketContextValue {
   state: SocketState;
-  joinRoom: (room: RoomName) => void;
-  leaveRoom: (room: RoomName) => void;
   getPrice: (room: RoomName) => void;
   trade: (
     token: RoomName,
@@ -100,10 +97,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: "RECONNECTING" });
     });
 
-    socket.on(SERVER_EVENTS.ROOMS_RESTORED, (payload) => {
-      dispatch({ type: "ROOMS_RESTORED", rooms: payload.rooms });
-    });
-
     socket.on(SERVER_EVENTS.PRICE_UPDATE, (payload) => {
       dispatch({ type: "PRICE_UPDATE", payload });
     });
@@ -145,48 +138,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, []);
-
-  const joinRoom = useCallback(async (room: RoomName) => {
-    const socket = await waitForConnection(() => socketRef.current);
-    try {
-      const res: AckResponse = await socket
-        .timeout(ACK_TIMEOUT_MS)
-        .emitWithAck(CLIENT_EVENTS.SUBSCRIBE, room);
-
-      if (!res.success) {
-        if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-        return;
-      }
-
-      dispatch({ type: "ROOM_JOINED", room });
-      dispatch({ type: "CLEAR_ERROR" });
-    } catch {
-      dispatch({
-        type: "SERVER_ERROR",
-        payload: { code: "TIMEOUT", message: "Server did not respond to join request" },
-      });
-    }
-  }, []);
-
-  const leaveRoom = useCallback(async (room: RoomName) => {
-    const socket = await waitForConnection(() => socketRef.current);
-    try {
-      const res: AckResponse = await socket
-        .timeout(ACK_TIMEOUT_MS)
-        .emitWithAck(CLIENT_EVENTS.UNSUBSCRIBE, room);
-
-      if (!res.success) {
-        if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-        return;
-      }
-      dispatch({ type: "ROOM_LEFT", room });
-    } catch {
-      dispatch({
-        type: "SERVER_ERROR",
-        payload: { code: "TIMEOUT", message: "Server did not respond to leave request" },
-      });
-    }
   }, []);
 
   const getPrice = useCallback(async (room: RoomName) => {
@@ -337,8 +288,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     <SocketContext.Provider
       value={{
         state,
-        joinRoom,
-        leaveRoom,
         getPrice,
         trade,
         fetchHistory,

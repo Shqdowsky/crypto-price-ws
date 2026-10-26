@@ -14,9 +14,10 @@ import {
   type TradeConfirm,
   type TradeHistoryEntry,
   RATE_LIMIT,
+  ROOMS,
 } from "@crypto-price-ws/shared";
 import pool from "../../src/config/db.js";
-import { addRoomSubscription, createTestUser, deleteTestUsers } from "../support/helpers.js";
+import { createTestUser, deleteTestUsers } from "../support/helpers.js";
 import {
   attemptConnect,
   connectClient,
@@ -384,22 +385,16 @@ describe("history acks", () => {
   );
 });
 
-describe("room restore", () => {
-  it("restores persisted rooms, skips invalid ones, and joins the socket to them", async () => {
+describe("rooms", () => {
+  it("joins every room on connect and delivers price updates for all of them", async () => {
     const userId = await newUser();
-    await addRoomSubscription(userId, "sol");
-    await addRoomSubscription(userId, "not-a-room");
-
     const { client, restoredRooms } = await connectClient(url, userId);
 
-    expect(restoredRooms).toEqual(["sol"]);
+    expect([...restoredRooms].sort()).toEqual([...Object.values(ROOMS)].sort());
 
-    // Prove the socket really joined "sol": broadcasts to "eth" must not arrive.
     io.to("eth").emit(SERVER_EVENTS.PRICE_UPDATE, { token: "eth", price: 1, timestamp: 1 });
-    io.to("sol").emit(SERVER_EVENTS.PRICE_UPDATE, { token: "sol", price: 70, timestamp: 2 });
-
-    const first = await client.waitFor<{ token: string }>(SERVER_EVENTS.PRICE_UPDATE);
-    expect(first.token).toBe("sol");
+    const update = await client.waitFor<{ token: string }>(SERVER_EVENTS.PRICE_UPDATE);
+    expect(update.token).toBe("eth");
   });
 });
 

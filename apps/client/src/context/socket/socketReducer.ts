@@ -22,7 +22,6 @@ export interface SocketState {
   connectionStatus: ConnectionStatus;
   prices: Partial<Record<RoomName, TokenPayload>>;
   priceHistory: Partial<Record<RoomName, PricePoint[]>>;
-  joinedRooms: Set<RoomName>;
   trades: Partial<Record<RoomName, TradeHistoryEntry[]>>;
   tradeHistory: TradeRow[];
   balance: string;
@@ -36,7 +35,6 @@ export const initialSocketState: SocketState = {
   connectionStatus: "disconnected",
   prices: {},
   priceHistory: {},
-  joinedRooms: new Set(),
   trades: {},
   tradeHistory: [],
   balance: "0.00",
@@ -51,8 +49,6 @@ export type SocketAction =
   | { type: "CONNECTED" }
   | { type: "RECONNECTING" }
   | { type: "DISCONNECTED" }
-  | { type: "ROOM_JOINED"; room: RoomName }
-  | { type: "ROOM_LEFT"; room: RoomName }
   | { type: "PRICE_UPDATE"; payload: TokenPayload }
   | { type: "PRICE_CURRENT"; payload: TokenPayload }
   | { type: "TRADE_CONFIRM"; payload: TradeConfirm }
@@ -64,7 +60,6 @@ export type SocketAction =
   | { type: "RATE_LIMITED"; retryAfterMs: number }
   | { type: "SERVER_ERROR"; payload: ErrorResponse }
   | { type: "CLEAR_ERROR" }
-  | { type: "ROOMS_RESTORED"; rooms: RoomName[] };
 
 function mergeClosedPositions(existing: Position[], incoming: Position[]): Position[] {
   const byId = new Map<number, Position>();
@@ -100,30 +95,6 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
 
     case "DISCONNECTED":
       return { ...state, connectionStatus: "disconnected" };
-
-    case "ROOM_JOINED": {
-      const joinedRooms = new Set(state.joinedRooms);
-      joinedRooms.add(action.room);
-      return { ...state, joinedRooms };
-    }
-
-    case "ROOM_LEFT": {
-      const joinedRooms = new Set(state.joinedRooms);
-      joinedRooms.delete(action.room);
-
-      const priceHistory = { ...state.priceHistory };
-      delete priceHistory[action.room];
-
-      const trades = { ...state.trades };
-      delete trades[action.room];
-
-      return { ...state, joinedRooms, trades, priceHistory };
-    }
-
-    case "ROOMS_RESTORED": {
-      const joinedRooms = new Set(action.rooms);
-      return { ...state, joinedRooms };
-    }
 
     case "PRICE_UPDATE":
     case "PRICE_CURRENT": {

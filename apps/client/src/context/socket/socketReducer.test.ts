@@ -17,7 +17,7 @@ import {
 const PRICE_HISTORY_LIMIT = 60;
 
 function stateWith(overrides: Partial<SocketState> = {}): SocketState {
-  return { ...initialSocketState, joinedRooms: new Set(), ...overrides };
+  return { ...initialSocketState, ...overrides };
 }
 
 function makePrice(token: "btc" | "eth", price: number, timestamp: number): TokenPayload {
@@ -88,63 +88,6 @@ describe("connection status", () => {
     const next = socketReducer(stateWith(), { type });
     expect(next.connectionStatus).toBe(expected);
   });
-});
-
-describe("rooms", () => {
-  it("ROOM_JOINED adds the room without mutating the previous set", () => {
-    const before = stateWith();
-    const after = socketReducer(before, { type: "ROOM_JOINED", room: "btc" });
-
-    expect(after.joinedRooms.has("btc")).toBe(true);
-    expect(before.joinedRooms.has("btc")).toBe(false);
-    expect(after.joinedRooms).not.toBe(before.joinedRooms);
-  });
-
-  it("ROOMS_RESTORED replaces the joined set wholesale", () => {
-    const before = stateWith({ joinedRooms: new Set(["btc"]) });
-    const after = socketReducer(before, { type: "ROOMS_RESTORED", rooms: ["eth", "sol"] });
-
-    expect([...after.joinedRooms].sort()).toEqual(["eth", "sol"]);
-  });
-
-  it("ROOM_LEFT clears that room's price history and trades but leaves other rooms alone", () => {
-    const before = stateWith({
-      joinedRooms: new Set(["btc", "eth"]),
-      priceHistory: {
-        btc: [{ price: 1, timestamp: 1 }],
-        eth: [{ price: 2, timestamp: 2 }],
-      },
-      trades: {
-        btc: [makeTradeEntry({ id: 1, token: "btc" })],
-        eth: [makeTradeEntry({ id: 2, token: "eth" })],
-      },
-    });
-
-    const after = socketReducer(before, { type: "ROOM_LEFT", room: "btc" });
-
-    expect(after.joinedRooms.has("btc")).toBe(false);
-    expect(after.joinedRooms.has("eth")).toBe(true);
-    expect(after.priceHistory.btc).toBeUndefined();
-    expect(after.priceHistory.eth).toHaveLength(1);
-    expect(after.trades.eth).toHaveLength(1);
-  });
-
-  it("ROOM_LEFT does not touch open or closed positions (account data, not room data)", () => {
-    const before = stateWith({
-      joinedRooms: new Set(["btc"]),
-      openPositions: { btc: makePosition() },
-      closedPositions: { btc: [makeClosedPosition({ id: 9 })] },
-    });
-
-    const after = socketReducer(before, { type: "ROOM_LEFT", room: "btc" });
-
-    expect(after.openPositions.btc).toEqual(before.openPositions.btc);
-    expect(after.closedPositions.btc).toHaveLength(1);
-  });
-
-  it.todo(
-    "ROOM_LEFT: decide whether persisted per-token trade history should survive leaving a room",
-  );
 });
 
 describe("prices", () => {

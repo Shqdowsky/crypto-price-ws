@@ -10,7 +10,10 @@ function getErrorMessage(error: unknown): string {
 
 export function ErrorMessage({ error }: ErrorMessageProps) {
   return (
-    <p role="alert" style={{ color: "crimson" }}>
+    <p
+      role="alert"
+      className="rounded-[10px] border border-[#f6465d]/45 bg-[#f6465d]/12 px-3.5 py-3 text-sm text-danger"
+    >
       {getErrorMessage(error)}
     </p>
   );
