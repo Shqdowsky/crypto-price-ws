@@ -3,7 +3,7 @@ import type { RoomName } from "@crypto-price-ws/shared";
 import type { PriceSource } from "./price-source.js";
 
 const BASE_URL = "wss://stream.binance.com:9443/stream";
-const STREAM = "miniTicker";
+const STREAM = "ticker_1d";
 
 const SYMBOLS: Record<RoomName, string> = {
   btc: "btcusdt",
@@ -27,20 +27,23 @@ const STALE_AFTER_MS = 10_000;
 const SILENCE_LIMIT_MS = 15_000;
 const WATCHDOG_INTERVAL_MS = 5_000;
 
-export function parseTickerMessage(raw: string): { room: RoomName; price: number } | null {
+export function parseTickerMessage(
+  raw: string,
+): { room: RoomName; price: number; PDChange: number } | null {
   let msg: unknown;
   try {
     msg = JSON.parse(raw);
   } catch {
     return null;
   }
-  const data = (msg as { data?: { s?: unknown; c?: unknown } } | null)?.data;
+  const data = (msg as { data?: { s?: unknown; c?: unknown; P?: unknown } } | null)?.data;
   if (typeof data?.s !== "string" || typeof data.c !== "string") return null;
 
   const room = ROOM_BY_SYMBOL.get(data.s);
   const price = Number(data.c);
+  const PDChange = Number(data.P);
   if (!room || !Number.isFinite(price) || price <= 0) return null;
-  return { room, price };
+  return { room, price, PDChange };
 }
 
 export function createBinanceSource(): PriceSource {
@@ -83,12 +86,12 @@ export function createBinanceSource(): PriceSource {
         ws.on("message", (raw) => {
           lastMessageAt = Date.now();
           const parsed = parseTickerMessage(raw.toString());
-          if (parsed) onPrice(parsed.room, parsed.price);
+          if (parsed) onPrice(parsed.room, parsed.price, parsed.PDChange);
         });
 
         ws.on("error", (err) => {
           if (socket === ws) socket = null;
-          console.error("Binance feed error:", err.message)
+          console.error("Binance feed error:", err.message);
         });
         ws.on("close", () => scheduleReconnect(connect));
       };

@@ -33,6 +33,7 @@ startPriceLoop((room, state) => {
   io.to(room).emit(SERVER_EVENTS.PRICE_UPDATE, {
     token: room,
     price: state.price,
+    PDChange: state.PDChange,
     timestamp: state.updatedAt,
   });
 });

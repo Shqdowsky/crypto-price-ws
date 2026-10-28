@@ -37,6 +37,7 @@ export function setupSocketServer(io: AppServer): void {
         socket.emit(SERVER_EVENTS.PRICE_CURRENT, {
           token: room,
           price: current.price,
+          PDChange: current.PDChange,
           timestamp: current.updatedAt,
         });
       }

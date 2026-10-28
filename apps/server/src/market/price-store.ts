@@ -6,6 +6,7 @@ import { createSimulatedSource } from "./simulated-source.js";
 
 interface TokenState {
   price: number;
+  PDChange: number;
   updatedAt: number;
 }
 
@@ -17,13 +18,13 @@ function initTokenMap(): void {
   tokenMap.clear();
   const now = Date.now();
   for (const [room, price] of source.initialPrices()) {
-    tokenMap.set(room, { price, updatedAt: now });
+    tokenMap.set(room, { price, PDChange: 0, updatedAt: now });
   }
 }
 
 function startPriceLoop(onTick: (room: RoomName, state: TokenState) => void): void {
-  source.start((room, price) => {
-    const state: TokenState = { price, updatedAt: Date.now() };
+  source.start((room, price, PDChange) => {
+    const state: TokenState = { price, PDChange, updatedAt: Date.now() };
     tokenMap.set(room, state);
     onTick(room, state);
   });

@@ -1,5 +1,5 @@
 import type { Socket } from "socket.io";
-import { CLIENT_EVENTS, SERVER_EVENTS } from "@crypto-price-ws/shared";
+import { CLIENT_EVENTS } from "@crypto-price-ws/shared";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -12,7 +12,6 @@ import { isValidRoom } from "../utils/room-check.js";
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function registerSocketHandlers(socket: AppSocket): void {
-
   socket.on(CLIENT_EVENTS.GET_PRICE, (room, callback) => {
     if (!isValidRoom(room)) {
       callback({
@@ -34,6 +33,7 @@ export function registerSocketHandlers(socket: AppSocket): void {
     const payload: TokenPayload = {
       token: room,
       price: state.price,
+      PDChange: state.PDChange,
       timestamp: state.updatedAt,
     };
 

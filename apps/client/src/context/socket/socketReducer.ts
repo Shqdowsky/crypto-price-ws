@@ -59,7 +59,7 @@ export type SocketAction =
   | { type: "TRADE_HISTORY_RESULT"; token: RoomName; trades: TradeHistoryEntry[] }
   | { type: "RATE_LIMITED"; retryAfterMs: number }
   | { type: "SERVER_ERROR"; payload: ErrorResponse }
-  | { type: "CLEAR_ERROR" }
+  | { type: "CLEAR_ERROR" };
 
 function mergeClosedPositions(existing: Position[], incoming: Position[]): Position[] {
   const byId = new Map<number, Position>();
@@ -98,13 +98,13 @@ export function socketReducer(state: SocketState, action: SocketAction): SocketS
 
     case "PRICE_UPDATE":
     case "PRICE_CURRENT": {
-      const { token, price, timestamp } = action.payload;
+      const { token, price, PDChange, timestamp } = action.payload;
 
       const existingHistory = state.priceHistory[token] ?? [];
       const updatedHistory =
         existingHistory.length >= PRICE_HISTORY_LIMIT
-          ? [...existingHistory.slice(1), { price, timestamp }]
-          : [...existingHistory, { price, timestamp }];
+          ? [...existingHistory.slice(1), { price, PDChange, timestamp }]
+          : [...existingHistory, { price, PDChange, timestamp }];
       return {
         ...state,
         prices: { ...state.prices, [token]: action.payload },

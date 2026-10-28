@@ -21,6 +21,25 @@
   --color-link: #5b9dff;
 
   --color-danger: #ff6b7f;
+  --color-up: #0ecb81;
+  --color-down: #f6465d;
+
+  --animate-flash-up: flash-up 0.9s ease-out;
+  --animate-flash-down: flash-down 0.9s ease-out;
+
+  @keyframes flash-up {
+    from {
+      color: var(--color-up);
+      background-color: rgb(14 203 129 / 0.18);
+    }
+  }
+
+  @keyframes flash-down {
+    from {
+      color: var(--color-down);
+      background-color: rgb(246 70 93 / 0.18);
+    }
+  }
 
   --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, monospace;

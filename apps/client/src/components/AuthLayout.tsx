@@ -9,16 +9,26 @@ const FEATURES = [
 const HERO_GLOW =
   "bg-[radial-gradient(60%_50%_at_20%_100%,rgba(37,99,235,0.35),transparent_70%),radial-gradient(50%_40%_at_100%_0%,rgba(37,99,235,0.18),transparent_70%)]";
 
-export function Brand({ className = "" }: { className?: string }) {
+export function Brand({
+  className = "",
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   return (
     <span
-      className={`inline-flex items-center gap-3 text-lg font-bold tracking-tight text-fg ${className}`}
+      className={`inline-flex items-center font-bold tracking-tight text-fg ${
+        compact ? "gap-2 text-base" : "gap-3 text-lg"
+      } ${className}`}
     >
       <span
-        className="grid size-9 place-items-center rounded-[10px] bg-primary text-white"
+        className={`grid place-items-center bg-primary text-white ${
+          compact ? "size-7 rounded-lg" : "size-9 rounded-[10px]"
+        }`}
         aria-hidden="true"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <svg width={compact ? 14 : 20} height={compact ? 14 : 20} viewBox="0 0 24 24" fill="none">
           <path
             d="M3 17l6-6 4 4 8-9"
             stroke="currentColor"

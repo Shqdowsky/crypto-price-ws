@@ -6,6 +6,7 @@ import { FundingReviewed } from "./funding.js";
 export interface TokenPayload {
   token: RoomName;
   price: number;
+  PDChange: number;
   timestamp: number;
 }
 

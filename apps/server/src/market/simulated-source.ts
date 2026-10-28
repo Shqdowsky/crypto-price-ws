@@ -8,12 +8,16 @@ function nextPrice(current: number): number {
 
 export function createSimulatedSource(): PriceSource {
   const prices = new Map<RoomName, number>();
+  const openPrices = new Map<RoomName, number>();
   let timer: NodeJS.Timeout | null = null;
 
   const seed = () => {
     prices.clear();
+    openPrices.clear();
     for (const room of Object.values(ROOMS)) {
-      prices.set(room, PRICE_CONFIG.INITIAL_PRICES[room]);
+      const initial = PRICE_CONFIG.INITIAL_PRICES[room];
+      prices.set(room, initial);
+      openPrices.set(room, initial);
     }
   };
 
@@ -29,7 +33,9 @@ export function createSimulatedSource(): PriceSource {
         for (const [room, current] of prices) {
           const next = nextPrice(current);
           prices.set(room, next);
-          onPrice(room, next);
+          const open = openPrices.get(room) ?? next;
+          const PDChange = open === 0 ? 0 : ((next - open) / open) * 100;
+          onPrice(room, next, PDChange);
         }
       }, PRICE_CONFIG.TICK_INTERVAL_MS);
     },

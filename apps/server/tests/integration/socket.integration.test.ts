@@ -392,7 +392,7 @@ describe("rooms", () => {
 
     expect([...restoredRooms].sort()).toEqual([...Object.values(ROOMS)].sort());
 
-    io.to("eth").emit(SERVER_EVENTS.PRICE_UPDATE, { token: "eth", price: 1, timestamp: 1 });
+    io.to("eth").emit(SERVER_EVENTS.PRICE_UPDATE, { token: "eth", price: 1, timestamp: 1 , PDChange: 0});
     const update = await client.waitFor<{ token: string }>(SERVER_EVENTS.PRICE_UPDATE);
     expect(update.token).toBe("eth");
   });
