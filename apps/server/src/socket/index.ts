@@ -1,4 +1,5 @@
 import {
+  ROOMS,
   SERVER_EVENTS,
   type ClientToServerEvents,
   type RoomName,
@@ -10,13 +11,14 @@ import { rateLimitPacketMiddleware } from "./middleware/rate-limit.middleware.js
 import { registerTradeHandlers } from "./handlers/trade.handler.js";
 import { registerSocketHandlers } from "./handlers/socket.handlers.js";
 import { cleanupSocket } from "./utils/shutdown.js";
-import { getRoomSubscriptions } from "./services/room-subscription.service.js";
-import { isValidRoom } from "./utils/room-check.js";
 import { getAccountState } from "./services/account.service.js";
 import { initNotifier, userRoom } from "./notifier.js";
+import { getPrice } from "../market/price-store.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 export type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
+
+const ALL_ROOMS: RoomName[] = Object.values(ROOMS);
 
 export function setupSocketServer(io: AppServer): void {
   initNotifier(io);
@@ -24,15 +26,22 @@ export function setupSocketServer(io: AppServer): void {
     socket.join(userRoom(socket.data.user.id));
     socket.use(rateLimitPacketMiddleware(socket));
     console.log(`Socket connected: ${socket.id} (user ${socket.data.user?.id})`);
-    const rooms = await getRoomSubscriptions(socket.data.user.id);
-    const validRooms = rooms.filter(isValidRoom) as RoomName[];
 
-    for (const room of validRooms) {
-      socket.join(room);
-    }
-    socket.emit(SERVER_EVENTS.ROOMS_RESTORED, { rooms: validRooms });
     registerSocketHandlers(socket);
     registerTradeHandlers(socket);
+
+    for (const room of ALL_ROOMS) {
+      socket.join(room);
+      const current = getPrice(room);
+      if (current) {
+        socket.emit(SERVER_EVENTS.PRICE_CURRENT, {
+          token: room,
+          price: current.price,
+          PDChange: current.PDChange,
+          timestamp: current.updatedAt,
+        });
+      }
+    }
 
     getAccountState(socket.data.user.id)
       .then((state) => socket.emit(SERVER_EVENTS.ACCOUNT_STATE, state))

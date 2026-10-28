@@ -1,5 +1,5 @@
 import type { Socket } from "socket.io";
-import { CLIENT_EVENTS, SERVER_EVENTS } from "@crypto-price-ws/shared";
+import { CLIENT_EVENTS } from "@crypto-price-ws/shared";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -8,59 +8,10 @@ import type {
 } from "@crypto-price-ws/shared";
 import { getPrice } from "../../market/price-store.js";
 import { isValidRoom } from "../utils/room-check.js";
-import {
-  addRoomSubscription,
-  removeRoomSubscription,
-} from "../services/room-subscription.service.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 
 export function registerSocketHandlers(socket: AppSocket): void {
-  socket.on(CLIENT_EVENTS.SUBSCRIBE, async (room, callback) => {
-    if (!isValidRoom(room)) {
-      callback({
-        success: false,
-        error: { code: "INVALID_ROOM", message: `Unknown room: ${room}` },
-      });
-      return;
-    }
-
-    socket.join(room);
-    try {
-      await addRoomSubscription(socket.data.user.id, room);
-    } catch (err) {
-      console.error("Failed to persist room subscription", err);
-    }
-    callback({ success: true });
-
-    const state = getPrice(room);
-    if (state) {
-      socket.emit(SERVER_EVENTS.PRICE_CURRENT, {
-        token: room,
-        price: state.price,
-        timestamp: state.updatedAt,
-      });
-    }
-  });
-
-  socket.on(CLIENT_EVENTS.UNSUBSCRIBE, async (room, callback) => {
-    if (!isValidRoom(room)) {
-      callback({
-        success: false,
-        error: { code: "INVALID_ROOM", message: `Unknown room: ${room}` },
-      });
-      return;
-    }
-
-    socket.leave(room);
-    try {
-      await removeRoomSubscription(socket.data.user.id, room);
-    } catch (err) {
-      console.error("Failed to remove room subscription", err);
-    }
-    callback({ success: true });
-  });
-
   socket.on(CLIENT_EVENTS.GET_PRICE, (room, callback) => {
     if (!isValidRoom(room)) {
       callback({
@@ -82,6 +33,7 @@ export function registerSocketHandlers(socket: AppSocket): void {
     const payload: TokenPayload = {
       token: room,
       price: state.price,
+      PDChange: state.PDChange,
       timestamp: state.updatedAt,
     };
 

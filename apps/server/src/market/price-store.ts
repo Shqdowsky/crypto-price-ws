@@ -1,45 +1,44 @@
-import { ROOMS, PRICE_CONFIG, type RoomName } from "@crypto-price-ws/shared";
+import type { RoomName } from "@crypto-price-ws/shared";
+import { env } from "../config/env.js";
+import type { PriceSource } from "./price-source.js";
+import { createBinanceSource } from "./binance-source.js";
+import { createSimulatedSource } from "./simulated-source.js";
 
 interface TokenState {
   price: number;
+  PDChange: number;
   updatedAt: number;
 }
 
 const tokenMap = new Map<RoomName, TokenState>();
+const source: PriceSource =
+  env.PRICE_SOURCE === "simulated" ? createSimulatedSource() : createBinanceSource();
 
 function initTokenMap(): void {
-  for (const room of Object.values(ROOMS)) {
-    tokenMap.set(room, {
-      price: PRICE_CONFIG.INITIAL_PRICES[room],
-      updatedAt: Date.now(),
-    });
+  tokenMap.clear();
+  const now = Date.now();
+  for (const [room, price] of source.initialPrices()) {
+    tokenMap.set(room, { price, PDChange: 0, updatedAt: now });
   }
 }
 
-function nextPrice(current: number): number {
-  const drift = (Math.random() * 2 - 1) * PRICE_CONFIG.MAX_DRIFT;
-  const price = current * (1 + drift);
-  return Math.max(PRICE_CONFIG.MIN_PRICE, price);
+function startPriceLoop(onTick: (room: RoomName, state: TokenState) => void): void {
+  source.start((room, price, PDChange) => {
+    const state: TokenState = { price, PDChange, updatedAt: Date.now() };
+    tokenMap.set(room, state);
+    onTick(room, state);
+  });
 }
 
-function startPriceLoop(onTick: (room: RoomName, state: TokenState) => void): void {
-  setInterval(() => {
-    for (const [room, state] of tokenMap) {
-      const updated: TokenState = {
-        price: nextPrice(state.price),
-        updatedAt: Date.now(),
-      };
-      tokenMap.set(room, updated);
-      onTick(room, updated);
-    }
-  }, PRICE_CONFIG.TICK_INTERVAL_MS);
+function stopPriceLoop(): void {
+  source.stop();
 }
 
 function getPrice(room: RoomName): TokenState | undefined {
-  return tokenMap.get(room);
+  const state = tokenMap.get(room);
+  if (!state) return undefined;
+  if (Date.now() - state.updatedAt > source.maxAgeMs) return undefined;
+  return state;
 }
 
-// initTokenMap();
-// startPriceLoop((room, state) => console.log(room, state))
-
-export { initTokenMap, startPriceLoop, getPrice };
+export { initTokenMap, startPriceLoop, stopPriceLoop, getPrice };

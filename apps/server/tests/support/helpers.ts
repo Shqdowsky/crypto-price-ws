@@ -19,15 +19,7 @@ export async function setUserRole(userId: number, role: "user" | "admin"): Promi
   await pool.query(`UPDATE users SET role = $1 WHERE id = $2`, [role, userId]);
 }
 
-export async function addRoomSubscription(userId: number, room: string): Promise<void> {
-  await pool.query(`INSERT INTO user_room_subscriptions (user_id, room) VALUES ($1, $2)`, [
-    userId,
-    room,
-  ]);
-}
-
 export async function deleteTestUsers(userIds: number[]): Promise<void> {
   if (userIds.length === 0) return;
-  await pool.query(`DELETE FROM user_room_subscriptions WHERE user_id = ANY($1::int[])`, [userIds]);
   await pool.query(`DELETE FROM users WHERE id = ANY($1::int[])`, [userIds]);
 }

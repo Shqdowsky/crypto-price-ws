@@ -2,27 +2,17 @@ import { useEffect, useRef } from "react";
 import { useParams, Navigate, Link } from "react-router";
 import { useSocketContext } from "../context/socket/SocketProvider";
 import { VALID_ROOMS, type RoomName } from "@crypto-price-ws/shared";
-import { ErrorMessage } from "../components/ErrorMessage";
 import { PriceChart } from "../components/PriceChart";
 import { TradePanel } from "../components/TradePanel";
 import { TradeHistoryPanel } from "../components/TradeHistoryPanel";
-
+import { TOKEN_NAMES } from "../config/tokens";
 export function TokenPage() {
   const { tokenName } = useParams<{ tokenName: string }>();
-  const { state, joinRoom, getPositionHistory, getTradeHistory } = useSocketContext();
-  const joinAttempted = useRef<RoomName | null>(null);
+  const { state, getPositionHistory, getTradeHistory } = useSocketContext();
   const historyFetched = useRef<RoomName | null>(null);
 
   const isValidToken = tokenName && VALID_ROOMS.has(tokenName as RoomName);
   const token = isValidToken ? (tokenName as RoomName) : null;
-  const isJoined = token ? state.joinedRooms.has(token) : false;
-  useEffect(() => {
-    if (!token || isJoined) return;
-    if (joinAttempted.current === token) return;
-
-    joinAttempted.current = token;
-    joinRoom(token);
-  }, [token, isJoined, joinRoom]);
 
   useEffect(() => {
     if (!token) return;
@@ -37,32 +27,60 @@ export function TokenPage() {
     return <Navigate to="/" replace />;
   }
 
-  const price = state.prices[token];
   const history = state.priceHistory[token] ?? [];
 
-  const isProfit =
-    price && state.openPositions[token]
-      ? price.price > Number(state.openPositions[token].avgCostBasis)
-      : null;
-  const priceColor = isProfit != null ? (isProfit ? "green" : "red") : "grey";
   return (
-    <div>
-      <Link to="/">&larr; Back to dashboard</Link>
-      <h1>{token.toUpperCase()}</h1>
+    <div className="flex flex-col gap-6">
+      <nav aria-label="Breadcrumb" className="text-sm text-muted">
+        <Link to="/" className="hover:text-fg">
+          Dashboard
+        </Link>
+        <span className="mx-2" aria-hidden="true">
+          /
+        </span>
+        <span className="text-fg">{token.toUpperCase()}</span>
+      </nav>
 
-      {!isJoined && state.lastError && <ErrorMessage error={state.lastError} />}
-      {!isJoined && <p>Joining {token.toUpperCase()}...</p>}
-      {isJoined && (
-        <>
-          <p style={{ color: priceColor }}>
-            Current price: {price ? `$${price.price.toFixed(2)}` : "waiting for price..."}
-          </p>
+      <header className="flex flex-col gap-5">
+        <div className="flex items-center gap-3">
+          <span
+            className="grid size-10 flex-none place-items-center rounded-full bg-primary/16 text-xs font-bold text-link"
+            aria-hidden="true"
+          >
+            {token.slice(0, 2).toUpperCase()}
+          </span>
+          <div>
+            <h1 className="text-xl leading-tight font-semibold">
+              {TOKEN_NAMES[token] ?? token.toUpperCase()}
+            </h1>
+            <p className="text-xs text-muted">{token.toUpperCase()}/USDT</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section
+          aria-label="Price chart"
+          className="rounded-2xl border border-line bg-surface p-4 sm:p-6"
+        >
           <PriceChart data={history} />
+        </section>
+
+        <aside
+          aria-label="Place order"
+          className="rounded-2xl border border-line bg-surface p-5 lg:sticky lg:top-24"
+        >
+          <h2 className="mb-4 text-base font-semibold">Spot trade</h2>
           <TradePanel token={token} />
-          <TradeHistoryPanel token={token} />
-          {/* <ProfitLoss trades={tokenTrades} currentPrice={price?.price} /> */}
-        </>
-      )}
+        </aside>
+      </div>
+
+      <section
+        aria-label="Trading history"
+        className="rounded-2xl border border-line bg-surface p-5 sm:p-6"
+      >
+        <TradeHistoryPanel token={token} />
+      </section>
     </div>
   );
 }

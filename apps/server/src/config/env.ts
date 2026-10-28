@@ -21,4 +21,5 @@ export const env = {
   REFRESH_TOKEN_MAX_AGE: requireEnv("REFRESH_TOKEN_MAX_AGE"),
   ACCESS_TOKEN_MAX_AGE: requireEnv("ACCESS_TOKEN_MAX_AGE"),
   WS_URL: requireEnv("WS_URL"),
+  PRICE_SOURCE: requireEnv("PRICE_SOURCE"),
 };

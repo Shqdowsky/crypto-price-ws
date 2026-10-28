@@ -23,11 +23,14 @@
   "dependencies": {
     "decimal.js": "^10.6.0",
     "pg": "^8.23.0",
-    "recharts": "^3.10.1",
     "supertest": "^7.3.1"
   },
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check ."
+  },
+  "allowScripts": {
+    "bcrypt": true,
+    "esbuild": true
   }
 }

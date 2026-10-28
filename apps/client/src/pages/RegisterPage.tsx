@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { AuthLayout, Brand } from "../components/AuthLayout";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { PasswordInput } from "../components/PasswordInput";
 import type { RegisterCredentials } from "../types/auth";
 import { useRegisterMutation } from "../hooks/authQueries";
 
@@ -32,56 +34,78 @@ export function RegisterPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          name="username"
-          type="text"
-          autoComplete="username"
-          value={credentials.username}
-          onChange={handleChange("username")}
-          required
-        />
-      </div>
+    <AuthLayout>
+      <form className="flex w-full max-w-[420px] flex-col gap-5" onSubmit={handleSubmit}>
+        <Brand className="mb-2 lg:hidden" />
 
-      <div>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={credentials.email}
-          onChange={handleChange("email")}
-          required
-        />
-      </div>
+        <div>
+          <h1 className="mb-2 text-[1.75rem] leading-tight font-semibold tracking-tight">
+            Create account
+          </h1>
+          <p className="text-muted">Sign up to start trading with a paper balance.</p>
+        </div>
 
-      <div>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          value={credentials.password}
-          onChange={handleChange("password")}
-          required
-          minLength={8}
-        />
-      </div>
+        <div className="flex flex-col gap-[18px]">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-muted" htmlFor="username">
+              Username
+            </label>
+            <input
+              id="username"
+              className="input"
+              name="username"
+              type="text"
+              autoComplete="username"
+              placeholder="satoshi"
+              value={credentials.username}
+              onChange={handleChange("username")}
+              required
+            />
+          </div>
 
-      {registerMutation.isError && <ErrorMessage error={registerMutation.error} />}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-muted" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="input"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={credentials.email}
+              onChange={handleChange("email")}
+              required
+            />
+          </div>
 
-      <button type="submit" disabled={registerMutation.isPending}>
-        {registerMutation.isPending ? "Registering..." : "Register"}
-      </button>
+          <div className="flex flex-col gap-2">
+            <PasswordInput
+              label="Password"
+              value={credentials.password}
+              onChange={(password) => setCredentials((prev) => ({ ...prev, password }))}
+              autoComplete="new-password"
+              required
+              minLength={8}
+            />
+            <p className="text-[0.8125rem] text-muted">Use at least 8 characters.</p>
+          </div>
+        </div>
 
-      <p>
-        Already registered? <Link to="/login">Log in</Link>
-      </p>
-    </form>
+        {registerMutation.isError && <ErrorMessage error={registerMutation.error} />}
+
+        <button type="submit" className="btn w-full" disabled={registerMutation.isPending}>
+          {registerMutation.isPending ? "Registering..." : "Register"}
+        </button>
+
+        <p className="border-t border-line pt-5 text-center text-muted">
+          Already registered?{" "}
+          <Link to="/login" className="font-semibold">
+            Log in
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

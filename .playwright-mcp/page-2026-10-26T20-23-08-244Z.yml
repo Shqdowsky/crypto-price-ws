@@ -1,0 +1,22 @@
+- main [ref=e3]:
+  - generic [ref=e27]:
+    - generic [ref=e45]: crypto-price-ws
+    - heading "Log in" [level=1] [ref=e28]
+    - paragraph [ref=e29]: Welcome back. Enter your details to continue.
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]: Email
+        - textbox "Email" [ref=e33]:
+          - /placeholder: you@example.com
+          - text: a@b.co
+      - generic [ref=e34]:
+        - generic [ref=e35]: Password
+        - generic [ref=e36]:
+          - textbox "Password" [active] [ref=e37]: password1
+          - button "Show password" [ref=e38] [cursor=pointer]
+    - alert [ref=e49]: Failed to fetch
+    - button "Log in" [ref=e42] [cursor=pointer]
+    - paragraph [ref=e43]:
+      - text: Don't have an account?
+      - link "Register" [ref=e44] [cursor=pointer]:
+        - /url: /register

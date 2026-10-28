@@ -3,7 +3,8 @@ export const ROOMS = {
   ETH: "eth",
   SOL: "sol",
   DOGE: "doge",
-  BLYAMBA: "blyamba",
+  BNB: "bnb",
+  XRP: "xrp",
 } as const;
 
 export type RoomName = (typeof ROOMS)[keyof typeof ROOMS];
@@ -47,7 +48,8 @@ export const PRICE_CONFIG = {
     [ROOMS.ETH]: 1700,
     [ROOMS.SOL]: 70,
     [ROOMS.DOGE]: 0.12,
-    [ROOMS.BLYAMBA]: 167693310,
+    [ROOMS.BNB]: 600,
+    [ROOMS.XRP]: 0.55,
   } as Record<RoomName, number>,
 } as const;
 

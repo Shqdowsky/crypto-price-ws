@@ -1,0 +1,36 @@
+- main [ref=f3e3]:
+  - generic [ref=f3e4]:
+    - generic [ref=f3e5]: crypto-price-ws
+    - generic [ref=f3e9]:
+      - paragraph [ref=f3e10]: Trade crypto in real time.
+      - paragraph [ref=f3e11]: Follow live prices and practice trading with a paper balance, on a platform built for speed and clarity.
+      - list [ref=f3e12]:
+        - listitem [ref=f3e13]: Live market prices
+        - listitem [ref=f3e17]: Paper trading with no real risk
+        - listitem [ref=f3e21]: Instant order execution
+    - paragraph [ref=f3e25]: Simulated trading. No real funds are used.
+  - generic [ref=f3e27]:
+    - generic [ref=f3e28]:
+      - heading "Create account" [level=1] [ref=f3e29]
+      - paragraph [ref=f3e30]: Sign up to start trading with a paper balance.
+    - generic [ref=f3e31]:
+      - generic [ref=f3e32]:
+        - generic [ref=f3e33]: Username
+        - textbox "Username" [ref=f3e34]:
+          - /placeholder: satoshi
+      - generic [ref=f3e35]:
+        - generic [ref=f3e36]: Email
+        - textbox "Email" [ref=f3e37]:
+          - /placeholder: you@example.com
+      - generic [ref=f3e38]:
+        - generic [ref=f3e39]:
+          - generic [ref=f3e40]: Password
+          - generic [ref=f3e41]:
+            - textbox "Password" [ref=f3e42]
+            - button "Show password" [ref=f3e43] [cursor=pointer]
+        - paragraph [ref=f3e47]: Use at least 8 characters.
+    - button "Register" [ref=f3e48]
+    - paragraph [ref=f3e49]:
+      - text: Already registered?
+      - link "Log in" [ref=f3e50] [cursor=pointer]:
+        - /url: /login
