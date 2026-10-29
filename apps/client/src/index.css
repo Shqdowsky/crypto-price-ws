@@ -6,74 +6,74 @@
  * Each token becomes a utility, e.g. bg-surface, text-muted, border-line, bg-primary.
  */
 @theme {
-  --color-bg: #0b0e11;
-  --color-surface: #12161c;
-  --color-surface-2: #1a1f27;
-  --color-line: #2b3139;
-  --color-line-strong: #3b4350;
+	--color-bg: #0b0e11;
+	--color-surface: #12161c;
+	--color-surface-2: #1a1f27;
+	--color-line: #2b3139;
+	--color-line-strong: #3b4350;
 
-  --color-fg: #eaecef;
-  --color-muted: #9aa4b2;
+	--color-fg: #eaecef;
+	--color-muted: #9aa4b2;
 
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-active: #1e40af;
-  --color-link: #5b9dff;
+	--color-primary: #2563eb;
+	--color-primary-hover: #1d4ed8;
+	--color-primary-active: #1e40af;
+	--color-link: #5b9dff;
 
-  --color-danger: #ff6b7f;
-  --color-up: #0ecb81;
-  --color-down: #f6465d;
+	--color-danger: #ff6b7f;
+	--color-up: #0ecb81;
+	--color-down: #f6465d;
 
-  --animate-flash-up: flash-up 0.9s ease-out;
-  --animate-flash-down: flash-down 0.9s ease-out;
+	--animate-flash-up: flash-up 0.9s ease-out;
+	--animate-flash-down: flash-down 0.9s ease-out;
 
-  @keyframes flash-up {
-    from {
-      color: var(--color-up);
-      background-color: rgb(14 203 129 / 0.18);
-    }
-  }
+	@keyframes flash-up {
+		from {
+			color: var(--color-up);
+			background-color: rgb(14 203 129 / 0.18);
+		}
+	}
 
-  @keyframes flash-down {
-    from {
-      color: var(--color-down);
-      background-color: rgb(246 70 93 / 0.18);
-    }
-  }
+	@keyframes flash-down {
+		from {
+			color: var(--color-down);
+			background-color: rgb(246 70 93 / 0.18);
+		}
+	}
 
-  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, monospace;
+	--font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+	--font-mono: ui-monospace, Consolas, monospace;
 }
 
 @layer base {
-  :root {
-    color-scheme: dark;
-  }
+	:root {
+		color-scheme: dark;
+	}
 
-  body {
-    @apply bg-bg font-sans text-fg antialiased;
-  }
+	body {
+		@apply bg-bg font-sans text-fg antialiased;
+	}
 
-  #root {
-    @apply flex min-h-svh flex-col;
-  }
+	#root {
+		@apply flex min-h-svh flex-col;
+	}
 
-  a {
-    @apply text-link;
-  }
+	a {
+		@apply text-link;
+	}
 
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-link/55;
-  }
+	:focus-visible {
+		@apply outline-2 outline-offset-2 outline-link/55;
+	}
 }
 
 /* Reusable primitives shared by the auth pages. */
 @layer components {
-  .input {
-    @apply h-12 w-full rounded-[10px] border border-line bg-surface-2 px-3.5 text-fg transition-colors placeholder:text-gray-500 hover:border-line-strong focus:border-primary focus:ring-3 focus:ring-primary/20 focus:outline-none;
-  }
+	.input {
+		@apply h-12 w-full rounded-[10px] border border-line bg-surface-2 px-3.5 text-fg transition-colors placeholder:text-gray-500 hover:border-line-strong focus:border-primary focus:ring-3 focus:ring-primary/20 focus:outline-none;
+	}
 
-  .btn {
-    @apply inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 font-semibold text-white transition-colors hover:bg-primary-hover active:bg-primary-active disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted;
-  }
+	.btn {
+		@apply inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 font-semibold text-white transition-colors hover:bg-primary-hover active:bg-primary-active disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted;
+	}
 }

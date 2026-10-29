@@ -5,9 +5,9 @@ import { setupSocketServer } from "./socket/index.js";
 import { initTokenMap, startPriceLoop } from "./market/price-store.js";
 import { SERVER_EVENTS } from "@crypto-price-ws/shared";
 import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  SocketData,
+	ClientToServerEvents,
+	ServerToClientEvents,
+	SocketData,
 } from "@crypto-price-ws/shared";
 import { env } from "./config/env.js";
 import { gracefulShutdown } from "./socket/utils/shutdown.js";
@@ -17,10 +17,10 @@ import { initNotifier } from "./socket/notifier.js";
 import { pruneLoginThrottle } from "./http/service/login-throttle.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
-  cors: {
-    origin: env.CLIENT_URL,
-    credentials: true,
-  },
+	cors: {
+		origin: env.CLIENT_URL,
+		credentials: true,
+	},
 });
 
 io.use(socketAuthMiddleware);
@@ -30,19 +30,19 @@ initNotifier(io);
 
 initTokenMap();
 startPriceLoop((room, state) => {
-  io.to(room).emit(SERVER_EVENTS.PRICE_UPDATE, {
-    token: room,
-    price: state.price,
-    PDChange: state.PDChange,
-    timestamp: state.updatedAt,
-  });
+	io.to(room).emit(SERVER_EVENTS.PRICE_UPDATE, {
+		token: room,
+		price: state.price,
+		PDChange: state.PDChange,
+		timestamp: state.updatedAt,
+	});
 });
 
 setInterval(pruneRateLimits, 60_000).unref();
 setInterval(pruneLoginThrottle, 60_000).unref();
 
 httpserver.listen(env.WS_PORT, () => {
-  console.log(`Server running on port ${env.WS_PORT}`);
+	console.log(`Server running on port ${env.WS_PORT}`);
 });
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM", io, httpserver, pool).catch(console.error));

@@ -1,36 +1,36 @@
 {
-  "name": "crypto-price-ws",
-  "private": true,
-  "workspaces": [
-    "apps/*"
-  ],
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^22.20.4",
-    "@types/supertest": "^7.2.1",
-    "cross-env": "^10.1.0",
-    "dotenv-cli": "^11.0.0",
-    "eslint": "^10.12.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^17.13.0",
-    "prettier": "^3.9.9",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.1"
-  },
-  "dependencies": {
-    "decimal.js": "^10.6.0",
-    "pg": "^8.23.0",
-    "supertest": "^7.3.1"
-  },
-  "scripts": {
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "allowScripts": {
-    "bcrypt": true,
-    "esbuild": true
-  }
+	"name": "crypto-price-ws",
+	"private": true,
+	"workspaces": [
+		"apps/*"
+	],
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^22.20.4",
+		"@types/supertest": "^7.2.1",
+		"cross-env": "^10.1.0",
+		"dotenv-cli": "^11.0.0",
+		"eslint": "^10.12.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-react-hooks": "^7.1.1",
+		"eslint-plugin-react-refresh": "^0.5.7",
+		"globals": "^17.13.0",
+		"prettier": "^3.9.9",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.71.1",
+		"vitest": "^5.0.1"
+	},
+	"dependencies": {
+		"decimal.js": "^10.6.0",
+		"pg": "^8.23.0",
+		"supertest": "^7.3.1"
+	},
+	"scripts": {
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"allowScripts": {
+		"bcrypt": true,
+		"esbuild": true
+	}
 }

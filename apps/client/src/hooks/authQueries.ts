@@ -5,100 +5,100 @@ import type { LoginCredentials, RegisterCredentials } from "../types/auth";
 import { authFetch } from "../utils/authFetch";
 
 export class LoginError extends Error {
-  readonly status: number;
-  readonly attemptsLeft?: number;
-  readonly retryAfterSeconds?: number;
+	readonly status: number;
+	readonly attemptsLeft?: number;
+	readonly retryAfterSeconds?: number;
 
-  constructor(message: string, status: number, attemptsLeft?: number, retryAfterSeconds?: number) {
-    super(message);
-    this.status = status;
-    this.attemptsLeft = attemptsLeft;
-    this.retryAfterSeconds = retryAfterSeconds;
-  }
+	constructor(message: string, status: number, attemptsLeft?: number, retryAfterSeconds?: number) {
+		super(message);
+		this.status = status;
+		this.attemptsLeft = attemptsLeft;
+		this.retryAfterSeconds = retryAfterSeconds;
+	}
 }
 
 export function useAuthQuery() {
-  return useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: async () => {
-      const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
-      if (!res.ok) throw new Error("unauthenticated");
-      const data: { user: PublicUser } = await res.json();
-      return data.user;
-    },
-    retry: false,
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-  });
+	return useQuery({
+		queryKey: ["auth", "me"],
+		queryFn: async () => {
+			const res = await authFetch(`${env.VITE_SERVER_URL}/auth/me`);
+			if (!res.ok) throw new Error("unauthenticated");
+			const data: { user: PublicUser } = await res.json();
+			return data.user;
+		},
+		retry: false,
+		staleTime: 2 * 60 * 1000,
+		refetchInterval: 2 * 60 * 1000,
+	});
 }
 
 export function useLoginMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (credentials: LoginCredentials) => {
-      const res = await fetch(`${env.VITE_SERVER_URL}/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new LoginError(
-          body?.message ?? `Login failed (${res.status})`,
-          res.status,
-          body?.attemptsLeft,
-          body?.retryAfterSeconds,
-        );
-      }
-      return res.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
-  });
+	return useMutation({
+		mutationFn: async (credentials: LoginCredentials) => {
+			const res = await fetch(`${env.VITE_SERVER_URL}/auth/login`, {
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(credentials),
+			});
+			if (!res.ok) {
+				const body = await res.json();
+				throw new LoginError(
+					body?.message ?? `Login failed (${res.status})`,
+					res.status,
+					body?.attemptsLeft,
+					body?.retryAfterSeconds,
+				);
+			}
+			return res.json();
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+	});
 }
 
 export function useLogoutMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${env.VITE_SERVER_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error((await res.json()).message);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      queryClient.removeQueries({ queryKey: ["admin"] });
-      queryClient.removeQueries({ queryKey: ["funding"] });
-    },
-  });
+	return useMutation({
+		mutationFn: async () => {
+			const res = await fetch(`${env.VITE_SERVER_URL}/auth/logout`, {
+				method: "POST",
+				credentials: "include",
+			});
+			if (!res.ok) throw new Error((await res.json()).message);
+			return res.json();
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+			queryClient.removeQueries({ queryKey: ["admin"] });
+			queryClient.removeQueries({ queryKey: ["funding"] });
+		},
+	});
 }
 
 export function useRegisterMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (credentials: RegisterCredentials) => {
-      const res = await fetch(`${env.VITE_SERVER_URL}/auth/register`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
+	return useMutation({
+		mutationFn: async (credentials: RegisterCredentials) => {
+			const res = await fetch(`${env.VITE_SERVER_URL}/auth/register`, {
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(credentials),
+			});
 
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.message ?? "Registration failed");
-      }
+			if (!res.ok) {
+				const body = await res.json();
+				throw new Error(body.message ?? "Registration failed");
+			}
 
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-    },
-  });
+			return res.json();
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+		},
+	});
 }

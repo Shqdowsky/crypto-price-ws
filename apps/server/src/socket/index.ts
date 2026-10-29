@@ -1,10 +1,10 @@
 import {
-  ROOMS,
-  SERVER_EVENTS,
-  type ClientToServerEvents,
-  type RoomName,
-  type ServerToClientEvents,
-  type SocketData,
+	ROOMS,
+	SERVER_EVENTS,
+	type ClientToServerEvents,
+	type RoomName,
+	type ServerToClientEvents,
+	type SocketData,
 } from "@crypto-price-ws/shared";
 import type { Socket, Server } from "socket.io";
 import { rateLimitPacketMiddleware } from "./middleware/rate-limit.middleware.js";
@@ -21,35 +21,35 @@ export type AppServer = Server<ClientToServerEvents, ServerToClientEvents, {}, S
 const ALL_ROOMS: RoomName[] = Object.values(ROOMS);
 
 export function setupSocketServer(io: AppServer): void {
-  initNotifier(io);
-  io.on("connection", async (socket: AppSocket) => {
-    socket.join(userRoom(socket.data.user.id));
-    socket.use(rateLimitPacketMiddleware(socket));
-    console.log(`Socket connected: ${socket.id} (user ${socket.data.user?.id})`);
+	initNotifier(io);
+	io.on("connection", async (socket: AppSocket) => {
+		socket.join(userRoom(socket.data.user.id));
+		socket.use(rateLimitPacketMiddleware(socket));
+		console.log(`Socket connected: ${socket.id} (user ${socket.data.user?.id})`);
 
-    registerSocketHandlers(socket);
-    registerTradeHandlers(socket);
+		registerSocketHandlers(socket);
+		registerTradeHandlers(socket);
 
-    for (const room of ALL_ROOMS) {
-      socket.join(room);
-      const current = getPrice(room);
-      if (current) {
-        socket.emit(SERVER_EVENTS.PRICE_CURRENT, {
-          token: room,
-          price: current.price,
-          PDChange: current.PDChange,
-          timestamp: current.updatedAt,
-        });
-      }
-    }
+		for (const room of ALL_ROOMS) {
+			socket.join(room);
+			const current = getPrice(room);
+			if (current) {
+				socket.emit(SERVER_EVENTS.PRICE_CURRENT, {
+					token: room,
+					price: current.price,
+					PDChange: current.PDChange,
+					timestamp: current.updatedAt,
+				});
+			}
+		}
 
-    getAccountState(socket.data.user.id)
-      .then((state) => socket.emit(SERVER_EVENTS.ACCOUNT_STATE, state))
-      .catch((err) => console.error("account:state push failed", err));
+		getAccountState(socket.data.user.id)
+			.then((state) => socket.emit(SERVER_EVENTS.ACCOUNT_STATE, state))
+			.catch((err) => console.error("account:state push failed", err));
 
-    socket.on("disconnect", (reason) => {
-      console.log(`Socket disconnected: ${socket.id} (${reason})`);
-      cleanupSocket(socket.id);
-    });
-  });
+		socket.on("disconnect", (reason) => {
+			console.log(`Socket disconnected: ${socket.id} (${reason})`);
+			cleanupSocket(socket.id);
+		});
+	});
 }
