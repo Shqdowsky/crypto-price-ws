@@ -59,6 +59,21 @@ export const RATE_LIMIT = {
 	REFILL_RATE: 1,
 } as const;
 
+export const CANDLE_INTERVALS = [1, 60, 300, 900, 3600] as const;
+export type CandleInterval = (typeof CANDLE_INTERVALS)[number];
+export const CANDLE_PAGE_SIZE = 120;
+export const CANDLE_MAX_PAGE_SIZE = 360;
+export const CANDLE_WINDOW_MAX = 360; // client memory cap (3 pages)
+
+// Seconds of history kept per interval; the cleanup job deletes older rows.
+export const CANDLE_RETENTION_SEC: Record<CandleInterval, number> = {
+	1: 30 * 60, // ≈ 1,800 points
+	60: 26 * 3600, // ≈ 1,560
+	300: 6 * 86400, // ≈ 1,728
+	900: 16 * 86400, // ≈ 1,536
+	3600: 63 * 86400, // ≈ 1,512
+};
+
 export const SHUTDOWN = {
 	SHUTDOWN_TIMEOUT_MS: 10000,
 	FORCE_EXIT_TIMEOUT_MS: 15_000,

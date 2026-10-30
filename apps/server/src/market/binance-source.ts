@@ -5,7 +5,7 @@ import type { PriceSource } from "./price-source.js";
 const BASE_URL = "wss://stream.binance.com:9443/stream";
 const STREAM = "ticker_1d";
 
-const SYMBOLS: Record<RoomName, string> = {
+export const SYMBOLS: Record<RoomName, string> = {
 	btc: "btcusdt",
 	eth: "ethusdt",
 	sol: "solusdt",

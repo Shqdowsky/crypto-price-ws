@@ -59,6 +59,7 @@ export async function gracefulShutdown(
 	io: Server,
 	httpServer: http.Server,
 	pool: Pool,
+	beforePoolEnd?: () => Promise<void>,
 ): Promise<void> {
 	if (isShuttingDown) {
 		console.log("[shutdown] Already in progress, ignoring signal");
@@ -93,6 +94,8 @@ export async function gracefulShutdown(
 		});
 	});
 	console.log("[shutdown] socket.io server closed");
+
+	await beforePoolEnd?.();
 
 	await pool.end();
 	console.log("[shutdown] Postgres pool drained");

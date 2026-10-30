@@ -36,6 +36,10 @@ function render(path: string) {
 
 beforeEach(() => {
 	vi.stubGlobal(
+		"fetch",
+		vi.fn(() => new Promise(() => {})),
+	);
+	vi.stubGlobal(
 		"ResizeObserver",
 		class {
 			observe() {}
