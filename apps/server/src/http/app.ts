@@ -3,6 +3,7 @@ import http from "http";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import fundingRoutes from "./routes/funding.js";
+import candleRoutes from "./routes/candles.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { env } from "../config/env.js";
@@ -10,16 +11,17 @@ import { env } from "../config/env.js";
 const app = express();
 
 app.use(
-  cors({
-    origin: env.CLIENT_URL,
-    credentials: true,
-  }),
+	cors({
+		origin: env.CLIENT_URL,
+		credentials: true,
+	}),
 );
 app.use(cookieParser());
 app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/admin", adminRoutes);
 app.use("/funding-requests", fundingRoutes);
+app.use("/candles", candleRoutes);
 
 const httpserver = http.createServer(app);
 

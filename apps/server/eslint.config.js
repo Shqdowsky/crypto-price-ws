@@ -6,19 +6,19 @@ import globals from "globals";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default defineConfig([
-  globalIgnores(["dist"]),
+	globalIgnores(["dist"]),
 
-  {
-    files: ["**/*.ts"],
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+	{
+		files: ["**/*.ts"],
+		extends: [js.configs.recommended, ...tseslint.configs.recommended],
 
-    languageOptions: {
-      globals: globals.node,
-    },
-    rules: {
-      "@typescript-eslint/no-empty-object-type": "off",
-    },
-  },
+		languageOptions: {
+			globals: globals.node,
+		},
+		rules: {
+			"@typescript-eslint/no-empty-object-type": "off",
+		},
+	},
 
-  eslintConfigPrettier,
+	eslintConfigPrettier,
 ]);

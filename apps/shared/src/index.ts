@@ -4,3 +4,4 @@ export * from "./types/funding.js";
 export * from "./types/socket.types.js";
 export * from "./constants.js";
 export * from "./types/error.js";
+export * from "./types/candle.js";

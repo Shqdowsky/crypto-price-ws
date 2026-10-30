@@ -5,8 +5,8 @@ import { defineConfig } from "vitest/config";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), react(), babel({ presets: [reactCompilerPreset()] })],
-  test: {
-    environment: "jsdom",
-  },
+	plugins: [tailwindcss(), react(), babel({ presets: [reactCompilerPreset()] })],
+	test: {
+		environment: "jsdom",
+	},
 });
