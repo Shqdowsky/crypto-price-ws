@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import {
 	CANDLE_PAGE_SIZE,
 	CANDLE_WINDOW_MAX,
@@ -154,7 +154,9 @@ export function useCandleWindow(token: RoomName, intervalSec: number) {
 	const payload = socket.prices[token];
 	const history = socket.priceHistory[token];
 
-	useEffect(() => {
+	// Layout effect: it must run before child passive effects (PriceChart's load trigger),
+	// otherwise the first load() after "init" reads the stale ref and silently returns.
+	useLayoutEffect(() => {
 		stateRef.current = state;
 		ticksRef.current = history ?? [];
 	});

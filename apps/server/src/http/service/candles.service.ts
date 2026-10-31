@@ -45,11 +45,12 @@ async function queryRows(q: CandleQuery): Promise<Row[]> {
 export async function getCandles(q: CandleQuery): Promise<CandlePage> {
 	let rows = await queryRows(q);
 
-	// First mount (latest page): fill holes from Binance, then re-read so the client
-	// gets one consistent page.
-	if (q.before === undefined && q.after === undefined) {
+	// Latest page and scroll-back pages: fill holes from Binance, then re-read so the client
+	// gets one consistent page. Older pages need it too, or holes outside the first window
+	// would never be filled. The live `after` refresh is skipped: ticks build those buckets.
+	if (q.after === undefined) {
 		const times = rows.map((r) => r.bucket_start.getTime());
-		if (await backfillGaps(q.token as RoomName, q.interval, times, q.limit)) {
+		if (await backfillGaps(q.token as RoomName, q.interval, times, q.limit, q.before)) {
 			rows = await queryRows(q);
 		}
 	}

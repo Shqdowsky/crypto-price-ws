@@ -29,13 +29,19 @@ export function findGaps(
 	interval: CandleInterval,
 	limit: number,
 	nowMs: number,
+	before?: number, // set for an older page: the exclusive upper edge instead of "now"
 ): GapRange[] {
 	const step = interval * 1000;
 	const threshold = Math.max(step, MIN_GAP_MS);
 	const currentBucket = Math.floor(nowMs / step) * step;
 	const gaps: GapRange[] = [];
 
-	if (times.length === 0) return [{ from: currentBucket - limit * step, to: currentBucket - step }];
+	if (times.length === 0) {
+		// An empty older page means we scrolled past the retained history: nothing to fill.
+		return before === undefined
+			? [{ from: currentBucket - limit * step, to: currentBucket - step }]
+			: [];
+	}
 
 	for (let i = 1; i < times.length; i++) {
 		const prev = times[i - 1]!;
@@ -43,8 +49,13 @@ export function findGaps(
 		if (next - prev > threshold) gaps.push({ from: prev + step, to: next - step });
 	}
 	const last = times[times.length - 1]!;
-	if (nowMs - last > threshold && last + step <= currentBucket - step) {
-		gaps.push({ from: last + step, to: currentBucket - step });
+	const edge = before ?? nowMs; // gap to the page edge, same threshold either way
+	const edgeEnd = (before ?? currentBucket) - step; // last bucket that may be missing
+	if (edge - last > threshold && last + step <= edgeEnd) {
+		// Clamp only this open-ended gap to the newest `limit` buckets: fetchKlines walks
+		// forward with a call budget, so a multi-hour tail would burn it on old buckets.
+		// Gaps between rows stay unclamped: a holey page spans more than limit * step.
+		gaps.push({ from: Math.max(last + step, edgeEnd + step - limit * step), to: edgeEnd });
 	}
 	return gaps;
 }
@@ -76,8 +87,6 @@ async function fetchKlines(
 	return { klines: out, used };
 }
 
-// One Binance fetch per token:interval at a time, so N users opening the same chart
-// share a single request instead of sending N.
 const inFlight = new Map<string, Promise<boolean>>();
 
 /** Fills gaps in the page from Binance. Resolves true if rows were inserted. Never throws. */
@@ -86,17 +95,18 @@ export function backfillGaps(
 	interval: CandleInterval,
 	times: number[],
 	limit: number,
+	before?: number,
 ): Promise<boolean> {
-	// Simulated prices must not be mixed with real Binance history.
 	if (env.PRICE_SOURCE === "simulated") return Promise.resolve(false);
 
-	const key = `${token}:${interval}`;
+	// `before` is part of the key: the same chart can load the latest and an older page at once.
+	const key = `${token}:${interval}:${before ?? ""}`;
 	const existing = inFlight.get(key);
 	if (existing) return existing;
 
 	const run = (async () => {
 		try {
-			const gaps = findGaps(times, interval, limit, Date.now());
+			const gaps = findGaps(times, interval, limit, Date.now(), before);
 			let budget = MAX_CALLS;
 			const rows: Kline[] = [];
 			for (const gap of gaps) {
@@ -107,7 +117,6 @@ export function backfillGaps(
 			}
 			if (rows.length === 0) return false;
 
-			// DO NOTHING: only fill holes, never overwrite rows the live writer produced.
 			await pool.query(
 				`INSERT INTO price_candles (token, interval_sec, bucket_start, open, high, low, close)
 				SELECT $1, $2::int, to_timestamp(t / 1000.0), o, h, l, c
@@ -126,13 +135,11 @@ export function backfillGaps(
 			);
 			return true;
 		} catch (err) {
-			// Serve what the DB has; a Binance outage must not break the endpoint.
 			console.error("[binance-klines] backfill failed", err);
 			return false;
 		}
 	})();
 	inFlight.set(key, run);
-	// Cleanup runs after set() (microtask), even when run resolved without awaiting.
 	void run.finally(() => inFlight.delete(key));
 	return run;
 }
