@@ -1,7 +1,9 @@
-/** USD price with enough decimals for cheap tokens: $65,000.00, $0.12, $0.00001234. */
+/** USD price with enough decimals for cheap tokens: $65,000.00, $2.412, $0.120, $0.00001234. */
 export function formatPrice(price: number): string {
-	const maximumFractionDigits = price >= 1 ? 2 : price >= 0.01 ? 6 : 8;
-	return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits })}`;
+	// Under $10 a 2-dp price hides real moves (XRP barely changes), so 4 dp is the minimum.
+	const minimumFractionDigits = price >= 10 ? 2 : 4;
+	const maximumFractionDigits = price >= 10 ? 2 : price >= 1 ? 4 : price >= 0.01 ? 6 : 8;
+	return `$${price.toLocaleString("en-US", { minimumFractionDigits, maximumFractionDigits })}`;
 }
 
 /** Signed percent: +1.23% / -0.50% / 0.00%. */

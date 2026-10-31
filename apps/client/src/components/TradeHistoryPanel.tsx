@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { RoomName } from "@crypto-price-ws/shared";
 import { useSocketContext } from "../context/socket/SocketProvider";
 import { Pagination } from "./Pagination";
+import { formatPrice } from "../utils/marketStats";
 import { clampPage, pageCount, pageSlice } from "../utils/pagination";
 
 interface TradeHistoryPanelProps {
@@ -98,7 +99,7 @@ export function TradeHistoryPanel({ token }: TradeHistoryPanelProps) {
 												{t.side === "buy" ? "Buy" : "Sell"}
 											</td>
 											<td className="py-3 text-right tabular-nums">
-												${Number(t.price).toFixed(2)}
+												{formatPrice(Number(t.price))}
 											</td>
 											<td className="py-3 text-right tabular-nums">
 												{Number(t.quantity).toFixed(8)}
@@ -156,10 +157,10 @@ export function TradeHistoryPanel({ token }: TradeHistoryPanelProps) {
 													{Number(p.totalBought).toFixed(8)}
 												</td>
 												<td className="py-3 text-right tabular-nums">
-													${Number(p.avgCostBasis).toFixed(2)}
+													{formatPrice(Number(p.avgCostBasis))}
 												</td>
 												<td className="py-3 text-right tabular-nums">
-													${Number(p.avgSellPrice ?? 0).toFixed(2)}
+													{formatPrice(Number(p.avgSellPrice ?? 0))}
 												</td>
 												<td
 													className={`py-3 text-right font-medium tabular-nums ${pnl >= 0 ? "text-up" : "text-down"}`}

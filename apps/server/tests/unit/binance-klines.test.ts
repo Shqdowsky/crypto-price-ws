@@ -47,6 +47,48 @@ describe("findGaps", () => {
 		expect(gaps[0]).toEqual({ from: a + 3_600_000, to: b - 3_600_000 });
 	});
 
+	it("clamps a long trailing 1s gap to the newest `limit` buckets", () => {
+		const last = NOW - 3 * 3_600_000;
+		const current = Date.UTC(2026, 0, 1, 12, 0, 30);
+		expect(findGaps([last], 1, 120, NOW)).toEqual([
+			{ from: current - 120_000, to: current - 1000 },
+		]);
+	});
+
+	it("keeps gaps between rows even when older than `limit` buckets from now", () => {
+		const a = Date.UTC(2026, 0, 1, 6, 0);
+		const b = Date.UTC(2026, 0, 1, 6, 10);
+		expect(findGaps([a, b], 60, 120, NOW)).toEqual([
+			{ from: a + MIN, to: b - MIN },
+			{ from: Date.UTC(2026, 0, 1, 10, 0), to: Date.UTC(2026, 0, 1, 11, 59) },
+		]);
+	});
+
+	describe("older page (before cursor)", () => {
+		const before = Date.UTC(2026, 0, 1, 9, 0);
+
+		it("finds holes between rows", () => {
+			const a = Date.UTC(2026, 0, 1, 8, 0);
+			const b = Date.UTC(2026, 0, 1, 8, 30);
+			const last = before - MIN;
+			expect(findGaps([a, b, last], 60, 120, NOW, before)).toEqual([
+				{ from: a + MIN, to: b - MIN },
+				{ from: b + MIN, to: last - MIN },
+			]);
+		});
+
+		it("finds the hole between the newest row and the cursor, not up to now", () => {
+			const last = Date.UTC(2026, 0, 1, 8, 20);
+			expect(findGaps([last], 60, 120, NOW, before)).toEqual([
+				{ from: last + MIN, to: before - MIN },
+			]);
+		});
+
+		it("returns nothing for an empty page", () => {
+			expect(findGaps([], 60, 120, NOW, before)).toEqual([]);
+		});
+	});
+
 	it("fills the latest `limit` closed candles when the page is empty", () => {
 		const current = Date.UTC(2026, 0, 1, 12, 0);
 		expect(findGaps([], 60, 10, NOW)).toEqual([{ from: current - 10 * MIN, to: current - MIN }]);
