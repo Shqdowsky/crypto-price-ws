@@ -1,14 +1,7 @@
 import { Pool } from "pg";
-import { env } from "./env.js";
+import { dbConfig } from "./env.js";
 
-const pool = new Pool({
-	host: env.DB_HOST as string,
-	port: env.DB_PORT as number,
-	database: env.DB_NAME as string,
-	user: env.DB_USER as string,
-	password: env.DB_PASSWORD as string,
-	max: 50,
-});
+const pool = new Pool(dbConfig);
 
 if (process.env.NODE_ENV !== "test") {
 	pool.connect((err, client, release) => {
