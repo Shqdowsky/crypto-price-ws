@@ -2,19 +2,12 @@ import { readdirSync, readFileSync } from "fs";
 import path, { join } from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";
-import { env } from "../config/env.js";
+import { dbConfig } from "../config/env.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const pool = new Pool({
-	host: env.DB_HOST as string,
-	port: env.DB_PORT as number,
-	database: env.DB_NAME as string,
-	user: env.DB_USER as string,
-	password: env.DB_PASSWORD as string,
-	max: 50,
-});
+const pool = new Pool(dbConfig);
 
 async function migrate() {
 	await pool.query(`

@@ -1,6 +1,9 @@
 {
 	"name": "crypto-price-ws",
 	"private": true,
+	"engines": {
+		"node": "24.x"
+	},
 	"workspaces": [
 		"apps/*"
 	],
@@ -27,7 +30,9 @@
 	},
 	"scripts": {
 		"format": "prettier --write .",
-		"format:check": "prettier --check ."
+		"format:check": "prettier --check .",
+		"start": "npm run start --workspace=apps/server",
+		"heroku-postbuild": "npm run build --workspace=apps/shared && npm run build --workspace=apps/server && npm run build --workspace=apps/client"
 	},
 	"allowScripts": {
 		"bcrypt": true,

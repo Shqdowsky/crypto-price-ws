@@ -8,7 +8,7 @@
 		"dev:client": "tsx watch src/client.ts",
 		"test:trade-flow": "tsx src/scripts/test-trade-flow.ts",
 		"start": "node dist/server.js",
-		"migrate": "ts-node src/scripts/migrate.ts",
+		"migrate": "tsx src/scripts/migrate.ts",
 		"migrate:test": "cross-env NODE_ENV=test dotenv -e .env.test -- tsx src/scripts/migrate.ts",
 		"pretest": "npm run migrate:test",
 		"pretest:coverage": "npm run migrate:test",
