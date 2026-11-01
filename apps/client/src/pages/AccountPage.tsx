@@ -98,7 +98,7 @@ export function AccountPage() {
 					Assets
 				</h2>
 				<div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-					<table className="w-full min-w-[560px] border-collapse text-sm">
+					<table className="w-full border-collapse md:min-w-[560px] text-sm">
 						<thead>
 							<tr className="border-b border-line text-xs text-muted">
 								<th scope="col" className="px-5 py-3 text-left font-medium">
@@ -132,7 +132,6 @@ export function AccountPage() {
 								<td className="px-4 py-4 text-right">
 									<AllocationCell percent={allocation(usdtBalance)} />
 								</td>
-								<td className="px-4 py-4 text-right text-muted">—</td>
 								<td className="px-4 py-4 text-right text-muted max-md:hidden">—</td>
 								<td className="py-4 pr-5 pl-4" />
 							</tr>

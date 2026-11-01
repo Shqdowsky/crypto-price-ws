@@ -121,10 +121,21 @@ describe("Dashboard", () => {
 		const rows = Array.from(container.querySelectorAll("tbody tr"));
 		expect(rows).toHaveLength(6);
 		for (const row of rows) {
-			const trade = Array.from(row.querySelectorAll("span")).find((s) => s.textContent === "Trade");
+			const trade = Array.from(row.querySelectorAll("a")).find((a) => a.textContent === "Trade");
 			expect(trade).toBeDefined();
 			// Visible on mobile: no max-sm:hidden class on the cell or the button.
 			expect(trade?.closest("td")?.className).not.toContain("max-sm:hidden");
+		}
+	});
+
+	it("links every link in a row to that row's own token, with no stacked overlay", () => {
+		render();
+
+		for (const row of Array.from(container.querySelectorAll("tbody tr"))) {
+			const hrefs = Array.from(row.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+			expect(new Set(hrefs).size).toBe(1);
+			// Browsers disagree on `position: relative` for <tr>, so overlay links must not rely on it.
+			expect(row.className).not.toContain("relative");
 		}
 	});
 

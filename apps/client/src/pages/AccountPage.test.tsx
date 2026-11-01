@@ -91,6 +91,16 @@ describe("AccountPage", () => {
 		expect(firstRow?.textContent).toContain("USDT");
 	});
 
+	it("keeps every table row as wide as the header (no stray column)", () => {
+		socketState = { ...socketState, openPositions: { btc: position("btc", "0.5", "50000") } };
+		render();
+
+		const headCells = container.querySelectorAll("thead th").length;
+		for (const row of Array.from(container.querySelectorAll("tbody tr"))) {
+			expect(row.querySelectorAll("td").length).toBe(headCells);
+		}
+	});
+
 	it("sums all-time realized P&L from closed positions", () => {
 		socketState = {
 			...socketState,

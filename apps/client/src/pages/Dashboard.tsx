@@ -83,7 +83,7 @@ export function Dashboard() {
 					Markets
 				</h2>
 				<div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-					<table className="w-full min-w-[420px] border-collapse text-sm">
+					<table className="w-full border-collapse text-sm">
 						<thead>
 							<tr className="border-b border-line text-xs text-muted">
 								<th scope="col" className="w-12 py-3 pl-5 text-left font-medium max-sm:hidden">
@@ -121,16 +121,16 @@ export function Dashboard() {
 								return (
 									<tr
 										key={room}
-										className="relative border-b border-line transition-colors last:border-b-0 hover:bg-surface-2"
+										className="border-b border-line transition-colors last:border-b-0 hover:bg-surface-2"
 									>
 										<td className="py-4 pl-5 text-muted tabular-nums max-sm:hidden">{index + 1}</td>
 										<td className="px-4 py-4 max-sm:pl-5">
 											<Link
 												to={`/token/${room}`}
-												className="flex items-center gap-3 text-fg after:absolute after:inset-0 hover:no-underline"
+												className="flex items-center gap-3 text-fg hover:no-underline"
 											>
 												<span
-													className="grid size-9 flex-none place-items-center rounded-full bg-primary/16 text-xs font-bold text-link"
+													className="grid size-9 flex-none place-items-center rounded-full bg-primary/16 text-xs font-bold text-link max-sm:hidden"
 													aria-hidden="true"
 												>
 													{room.slice(0, 2).toUpperCase()}
@@ -143,14 +143,16 @@ export function Dashboard() {
 												</span>
 											</Link>
 										</td>
-										<td className="px-4 py-4 text-right font-medium tabular-nums">
+										<td className="px-4 py-4 text-right font-medium tabular-nums max-sm:px-2">
 											{price ? (
 												<PriceCell price={price.price} />
 											) : (
 												<Skeleton className="h-5 w-20" />
 											)}
 										</td>
-										<td className={`px-4 py-4 text-right font-medium tabular-nums ${changeColor}`}>
+										<td
+											className={`px-4 py-4 text-right font-medium tabular-nums max-sm:px-2 ${changeColor}`}
+										>
 											{change === null ? "—" : formatChange(change)}
 										</td>
 										<td className="px-4 py-3 max-md:hidden">
@@ -159,9 +161,12 @@ export function Dashboard() {
 											</div>
 										</td>
 										<td className="py-4 pr-4 pl-2 text-right sm:pr-5 sm:pl-4">
-											<span className="inline-block rounded-md bg-primary/16 px-2.5 py-1 text-[0.7rem] font-semibold text-link transition-colors sm:px-3 sm:py-1.5 sm:text-xs [tr:hover_&]:bg-primary [tr:hover_&]:text-white">
+											<Link
+												to={`/token/${room}`}
+												className="inline-block rounded-md bg-primary/16 px-2.5 py-1 text-[0.7rem] font-semibold text-link transition-colors hover:no-underline sm:px-3 sm:py-1.5 sm:text-xs [tr:hover_&]:bg-primary [tr:hover_&]:text-white"
+											>
 												Trade
-											</span>
+											</Link>
 										</td>
 									</tr>
 								);

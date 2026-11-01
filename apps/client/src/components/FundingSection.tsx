@@ -130,7 +130,7 @@ export function FundingHistory() {
 				</p>
 			)}
 			<div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-				<table className="w-full min-w-[560px] border-collapse text-sm">
+				<table className="w-full border-collapse md:min-w-[560px] text-sm">
 					<thead>
 						<tr className="border-b border-line text-xs text-muted">
 							<th scope="col" className="px-5 py-3 text-left font-medium">
@@ -142,7 +142,7 @@ export function FundingHistory() {
 							<th scope="col" className="px-4 py-3 text-left font-medium">
 								Status
 							</th>
-							<th scope="col" className="px-4 py-3 text-left font-medium">
+							<th scope="col" className="px-4 py-3 text-left font-medium max-md:hidden">
 								Reason
 							</th>
 							<th scope="col" className="px-5 py-3 text-right font-medium">
@@ -155,7 +155,7 @@ export function FundingHistory() {
 							const status = STATUS_STYLES[r.status];
 							return (
 								<tr key={r.id} className="border-b border-line last:border-b-0">
-									<td className="px-5 py-4 whitespace-nowrap text-muted tabular-nums">
+									<td className="px-5 py-4 text-muted tabular-nums md:whitespace-nowrap">
 										{new Date(r.createdAt).toLocaleString()}
 									</td>
 									<td className="px-4 py-4 text-right font-medium tabular-nums">
@@ -168,7 +168,7 @@ export function FundingHistory() {
 											{status.label}
 										</span>
 									</td>
-									<td className="px-4 py-4 text-muted">{r.reason ?? "—"}</td>
+									<td className="px-4 py-4 text-muted max-md:hidden">{r.reason ?? "—"}</td>
 									<td className="px-5 py-4 text-right">
 										{r.status === "pending" && (
 											<button
