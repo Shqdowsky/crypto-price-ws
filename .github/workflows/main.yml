@@ -1,4 +1,4 @@
-name: Server Tests
+name: CI/CD
 
 on:
   push:
@@ -64,3 +64,18 @@ jobs:
           name: server-coverage-report
           path: apps/server/coverage/
           retention-days: 14
+
+  deploy:
+    needs: [lint-and-typecheck, client-test, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
