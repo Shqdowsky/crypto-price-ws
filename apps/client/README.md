@@ -1,76 +1,35 @@
-# React + TypeScript + Vite
+# Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React single-page app for the crypto price feed: live charts, paper trading, account pages and admin tools.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 24 (see the [root README](../../README.md))
+- A running server (see [apps/server/README.md](../server/README.md))
 
-## React Compiler
+## Pages and routes
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+Routes are defined in `src/routes/AppRoutes.tsx`.
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+| Path                | Page                          | Who can open it       |
+| ------------------- | ----------------------------- | --------------------- |
+| `/login`            | Login                         | Logged-out users only |
+| `/register`         | Register                      | Logged-out users only |
+| `/`                 | Dashboard                     | Logged-in users       |
+| `/token/:tokenName` | Token (chart, trade, history) | Logged-in users       |
+| `/account`          | Account                       | Logged-in users       |
+| `/account/deposit`  | Request a deposit             | Logged-in users       |
+| `/admin`            | Users                         | Admins                |
+| `/admin/users/:id`  | User detail                   | Admins                |
+| `/admin/funding`    | Funding requests              | Admins                |
 
-## Expanding the ESLint configuration
+Route guards live in `src/routes/guards/`: `ProtectedRoute`, `PublicOnlyRoute` and `AdminRoute`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How state is organized
 
-```js
-export default defineConfig([
-	globalIgnores(["dist"]),
-	{
-		files: ["**/*.{ts,tsx}"],
-		extends: [
-			// Other configs...
+- **Auth** (`src/context/auth/`): the current user and login state. Access and refresh tokens are cookies, so the client never reads them. `authFetch` retries a request once after a 401 by calling `/auth/refresh`.
+- **Socket** (`src/context/socket/`): one Socket.IO connection for the whole app. Its state (prices, price history, balance and positions) is updated by a pure reducer in `socketReducer.ts`, which has unit tests. Trade and history calls use acknowledgements with a timeout.
+- **Server data** (`src/hooks/`): HTTP data such as funding requests and admin lists goes through React Query hooks. Socket events that change this data invalidate the matching query.
+- **Candle window** (`src/hooks/useCandleWindow.ts`): keeps at most 360 candles in memory for one token and interval. It loads older and newer pages as the user scrolls, and folds live ticks into the newest candle while the window is at the live edge.
 
-			// Remove tseslint.configs.recommended and replace with this
-			tseslint.configs.recommendedTypeChecked,
-			// Alternatively, use this for stricter rules
-			tseslint.configs.strictTypeChecked,
-			// Optionally, add this for stylistic rules
-			tseslint.configs.stylisticTypeChecked,
-
-			// Other configs...
-		],
-		languageOptions: {
-			parserOptions: {
-				project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-				tsconfigRootDir: import.meta.dirname,
-			},
-			// other options...
-		},
-	},
-]);
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default defineConfig([
-	globalIgnores(["dist"]),
-	{
-		files: ["**/*.{ts,tsx}"],
-		extends: [
-			// Other configs...
-			// Enable lint rules for React
-			reactX.configs["recommended-typescript"],
-			// Enable lint rules for React DOM
-			reactDom.configs.recommended,
-		],
-		languageOptions: {
-			parserOptions: {
-				project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-				tsconfigRootDir: import.meta.dirname,
-			},
-			// other options...
-		},
-	},
-]);
-```
+The client uses the React Compiler through a Babel plugin, so components should follow the usual React rules (no mutating props or state during render).

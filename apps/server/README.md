@@ -1,215 +1,103 @@
-﻿# crypto-price-ws
+﻿# Server
 
-A real-time cryptocurrency price tracking server built with **socket.io**, **TypeScript**, and **PostgreSQL**. Simulates live token prices broadcast to subscribed clients, supports trade execution and history, includes graceful shutdown, per-socket rate limiting, and JWT authentication.
+The Express HTTP API and the Socket.IO server for the app. It also runs the price feed, stores price candles, and serves the built client in production.
 
-Built as a 7-day learning project to explore WebSocket architecture, connection lifecycle management, and load testing.
+````
 
----
+## HTTP API
 
-## Features
+Authentication uses an `httpOnly` cookie named `token` for access and `refresh_token` for refresh.
 
-- **Live price simulation** — BTC, ETH, SOL, DOGE, BLYAMBA ( a joke ) prices update every second via an in-memory Map, broadcast to subscribed room members
-- **On-demand price requests** — clients can request the current price outside of the broadcast cycle
-- **Trade execution** — buy/sell recorded to PostgreSQL using the live Map price at the moment of execution
-- **Trade history** — fetch all past trades by authenticated user
-- **JWT authentication** — all socket connections require a valid token via socket.io handshake
-- **Token bucket rate limiting** — per-socket rate limiter on price:get requests with smooth refill
-- **Graceful shutdown** — waits for in-flight DB operations to complete before closing sockets, then drains the PostgreSQL pool
-- **Console client** — readline-based CLI for manual testing
-- **k6 load tested** — validated up to 1000 concurrent WebSocket connections
+| Method | Path                                  | Auth           | Purpose                                                             |
+| ------ | ------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| POST   | `/auth/register`                      | none           | Create an account                                                   |
+| POST   | `/auth/login`                         | none           | Log in (throttled after repeated failures)                          |
+| POST   | `/auth/refresh`                       | refresh cookie | Issue a new access token                                            |
+| GET    | `/auth/me`                            | access token   | Current user                                                        |
+| POST   | `/auth/logout`                        | none           | Clear the cookies                                                   |
+| GET    | `/candles/:token`                     | none           | Candle page: `interval`, `limit`, and `before` or `after` (Unix ms) |
+| POST   | `/funding-requests`                   | user           | Request a balance top-up                                            |
+| GET    | `/funding-requests/mine`              | user           | Your funding requests                                               |
+| POST   | `/funding-requests/:id/cancel`        | user           | Cancel one of your pending requests                                 |
+| GET    | `/admin/users`                        | admin          | List users                                                          |
+| GET    | `/admin/users/:id`                    | admin          | User detail                                                         |
+| GET    | `/admin/users/:id/trades`             | admin          | A user's trades                                                     |
+| GET    | `/admin/treasury`                     | admin          | Treasury totals                                                     |
+| GET    | `/admin/funding-requests`             | admin          | All funding requests                                                |
+| POST   | `/admin/funding-requests/:id/approve` | admin          | Approve and credit the balance                                      |
+| POST   | `/admin/funding-requests/:id/reject`  | admin          | Reject a request                                                    |
 
----
+Candle intervals are `1`, `60`, `300`, `900` and `3600` seconds.
 
-## Architecture
+## Socket.IO
 
-### Event flow
+The socket connects to the same server. The handshake must include the `token` cookie. Without it, or with an invalid or expired token, the connection is refused.
 
-```
-Client                          Server                        PostgreSQL
-──────                          ──────                        ──────────
-connect ──────────────────────► io.use(authMiddleware)
-                                  verify JWT
-                                  findUserById()  ──────────► SELECT users
-                                  socket.data.user = user
-                                emit 'connection'
+On connect, the server joins the socket to every token room, sends `price:current` for each room that has a price, then sends `account:state`.
 
-subscribe { token } ──────────► socket.join(room)
-                                getPrice(room) [Map read]
-◄─────────────────────────────── price:current { token, price, ts }
+Events and payloads are defined in [apps/shared/src/constants.ts](../shared/src/constants.ts) and [apps/shared/src/types/socket.types.ts](../shared/src/types/socket.types.ts).
 
-                                setInterval tick (1s)
-                                  nextPrice() mutates Map
-◄─────────────────────────────── price:update { token, price, ts }
-                                  → broadcast to room only
+**Client to server** (most use an acknowledgement callback that returns `{ success, data?, error? }`):
 
-price:get { token } ──────────► checkRateLimit(socket.id)
-                                getPrice(room) [Map read]
-◄─────────────────────────────── price:current { token, price, ts }
+| Event                 | Payload                                      | Returns                           |
+| --------------------- | -------------------------------------------- | --------------------------------- |
+| `price:get`           | token                                        | Current price and 24h change      |
+| `trade:execute`       | `{ token, side: "buy" \| "sell", quantity }` | Trade result and updated position |
+| `account:get`         | none                                         | Balance and positions             |
+| `position:history`    | `{ token }`                                  | Closed positions for that token   |
+| `trade:history:token` | `{ token }`                                  | Trades for that token             |
 
-trade:execute { token, side } ► getPrice(token) [Map read]
-                                insertTrade()   ──────────► INSERT trades
-                                                ◄────────── row
-◄─────────────────────────────── trade:confirm { id, token, side, price }
+`quantity` is a positive number, or the string `"all"`. `"all"` spends the whole balance when buying, and closes the whole position when selling.
 
-trade:history ────────────────► getTradesByUserId() ──────► SELECT trades
-◄─────────────────────────────── trade:history:result { trades[] }
+**Server to client:**
 
-disconnect ───────────────────► clearRateLimit(socket.id)
-                                cleanupSocket(socket.id)
-                                socket.io removes from all rooms
-```
+| Event              | Meaning                                                  |
+| ------------------ | -------------------------------------------------------- |
+| `price:update`     | New price for a token, sent to its room on every tick    |
+| `price:current`    | Price snapshot, sent on connect                          |
+| `balance:update`   | New balance after a trade or an approved funding request |
+| `account:state`    | Balance and positions, sent on connect                   |
+| `funding:reviewed` | A funding request was approved or rejected               |
+| `rate-limited`     | Too many requests from this user                         |
 
----
+Every user also joins a private room, `user:<id>`, so admin actions reach only that user's sockets.
 
-## Socket events
+## Trading rules
 
-### Client → Server
+- Trades execute at the server's current price for the token. If no fresh price exists, the trade is rejected with `PRICE_UNAVAILABLE`.
+- Each trade runs in one database transaction that locks the user's row, so two trades can't overspend the balance.
+- Money math uses `decimal.js`. Quantities keep 8 decimal places and P&L keeps 2.
+- Rate limit: a token bucket with a capacity of 10 requests and a refill of 1 request per second, per user.
 
-| Event           | Payload                                      | Description                                        |
-| --------------- | -------------------------------------------- | -------------------------------------------------- |
-| `subscribe`     | `RoomName`                                   | Join a token room, receive immediate current price |
-| `unsubscribe`   | `RoomName`                                   | Leave a token room                                 |
-| `price:get`     | `RoomName`                                   | Request current price on demand (rate limited)     |
-| `trade:execute` | `{ token: RoomName, side: 'buy' \| 'sell' }` | Execute a trade at the current live price          |
-| `trade:history` | —                                            | Fetch all trades for the authenticated user        |
+## Price feeds
 
-### Server → Client
+The `PriceSource` interface has two implementations, picked by `PRICE_SOURCE`:
 
-| Event                  | Payload                             | Description                            |
-| ---------------------- | ----------------------------------- | -------------------------------------- |
-| `price:update`         | `TokenPayload`                      | Broadcast to room every tick (1s)      |
-| `price:current`        | `TokenPayload`                      | Response to `subscribe` or `price:get` |
-| `trade:confirm`        | `TradeConfirm`                      | Trade written to DB successfully       |
-| `trade:history:result` | `{ trades: TradeRow[] }`            | Trade history result                   |
-| `rate-limited`         | `{ retryAfterMs: number }`          | Rate limit exceeded on `price:get`     |
-| `error:general`        | `{ code: string, message: string }` | Server-side error                      |
+- `simulated`: a random walk around starting prices. Useful offline.
+- `binance`: Binance's public `miniTicker` WebSocket. It reconnects with exponential backoff and watches for silence.
 
----
+Each price tick is written to memory, broadcast to the room, and folded into 1-second candles. Candle writes happen once per second, in one batch. Rollups build the larger intervals every 5 seconds, and a cleanup job deletes candles older than their retention.
 
-### Environment variables
+## Database
 
-Create a `.env` file in the project root:
+Migrations are plain SQL files in `migrations/`, applied in filename order. Applied files are recorded in `schema_migrations`, and each file runs in its own transaction.
 
-```env
-WS_PORT=8080
-JWT_SECRET=your_jwt_secret_here
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=crypto_ws
-DB_USER=postgres
-DB_PASSWORD=your_db_password
-```
+```sh
+npm run migrate --workspace=apps/server        # apply to the database in .env
+npm run migrate:test --workspace=apps/server   # apply to the test database in .env.test
+````
 
-### Console client
+To change the schema, add a new numbered file (for example `002_something.sql`). Don't edit an existing migration that has already run.
 
-Available commands once connected:
+## Testing
 
-```
-join <token>     — subscribe to a room       (e.g. join btc)
-leave <token>    — unsubscribe from a room
-price <token>    — request current price
-buy <token>      — execute a buy trade
-sell <token>     — execute a sell trade
-history          — fetch your trade history
-exit             — disconnect and quit
-```
+The tests are integration tests against a real PostgreSQL database, using the settings in `.env.test`. They default to `crypto_test` on `localhost:5432`, user `postgres`, password `postgres`. Create that database before the first run.
 
-Supported tokens: `btc`, `eth`, `sol`, `doge`, `blyamba`
+Each test creates its own users and removes them afterwards. The tests don't truncate tables, so they can run alongside other data in the test database.
 
----
+## Production notes
 
-## Price simulation
-
-Prices are seeded at startup from hardcoded initial values and updated every second using a multiplicative random walk:
-
-```
-price = price × (1 + random(-0.005, 0.005))
-price = max(price, MIN_PRICE)
-```
-
-Each tick applies a random drift of ±0.5% to the previous price, clamped to never go negative. This produces realistic-looking movement without any external data source.
-
----
-
-## Rate limiting
-
-`price:get` requests are rate limited per socket using a **token bucket** algorithm:
-
-- **Capacity:** 10 tokens (maximum burst)
-- **Refill rate:** 1 tokens/second
-- Buckets are created on first request and cleaned up on disconnect — no memory leaks
-
-When the limit is exceeded the server emits `rate-limited` with a `retryAfterMs` value calculated from the bucket's current state.
-
----
-
-## Graceful shutdown
-
-On `SIGTERM` or `SIGINT`:
-
-1. Set `isShuttingDown = true` — new trade requests are rejected immediately
-2. Notify all connected clients via `server_shutdown` event
-3. For each socket: wait up to `SHUTDOWN_TIMEOUT_MS` (10s) for in-flight DB operations to complete, then disconnect
-4. Close the socket.io server
-5. Drain the PostgreSQL connection pool
-6. Exit cleanly
-
-A `FORCE_EXIT_TIMEOUT_MS` (15s) hard deadline ensures the process always exits even if something hangs.
-
-In-flight operations are tracked per socket via `incrementPending()` / `decrementPending()` called around every `await pool.query()` in trade handlers.
-
----
-
-## Performance
-
-Load tested with [k6](https://k6.io) using raw WebSocket protocol against the socket.io server. Each virtual user connects with a JWT, subscribes to a random token room, waits for price broadcasts, executes one trade, then disconnects.
-
-### Results
-
-| VUs  | Connection rate | Trade success | Trade p(95) | Trade max | Price p(95) |
-| ---- | --------------- | ------------- | ----------- | --------- | ----------- |
-| 300  | 100%            | 100%          | 143ms       | 255ms     | 43ms        |
-| 500  | 100%            | 100%          | 129ms       | 246ms     | 37ms        |
-| 750  | 100%            | 100%          | 132ms       | 194ms     | 39ms        |
-| 1000 | 100%            | 100%          | 152ms       | 232ms     | 51ms        |
-
-### Observations
-
-- Zero connection failures or server errors across all load levels
-- Trade confirmation latency (DB write + socket emit roundtrip) stayed under **155ms p(95)** at all tested VU counts
-- Price broadcast latency remained under **55ms p(95)** at 1000 concurrent connections — the in-memory Map broadcast loop does not block under load
-- `trade_latency max` stayed under 260ms across all runs — no pool contention observed
-- No degradation point found at 1000 VUs on local hardware; the server scales linearly across the tested range
-- To find the true ceiling, higher VU counts or a dedicated cloud load testing environment would be needed (the k6 runner and server share the same machine in these tests)
-
-### Load test stages
-
-```javascript
-{ duration: '20s', target: 100  },
-{ duration: '30s', target: 1000 },
-{ duration: '45s', target: 1000 },
-{ duration: '15s', target: 0    },
-```
-
-### Test environment
-
-- Server and k6 runner on the same local machine
-- PostgreSQL local install, `max_connections` default (100)
-- PostgreSQL pool `max: 50`
-
-## Tech stack
-
-| Layer            | Technology                      |
-| ---------------- | ------------------------------- |
-| Runtime          | Node.js 18+                     |
-| Language         | TypeScript                      |
-| WebSocket server | socket.io v4                    |
-| HTTP framework   | Express                         |
-| Database         | PostgreSQL + node-postgres (pg) |
-| Authentication   | JWT (jsonwebtoken) + bcrypt     |
-| Validation       | Zod                             |
-| Load testing     | k6                              |
-
----
-
-This is a learning project, not a trading platform.
+- With `NODE_ENV=production`, the server serves the built client from `apps/client/dist`.
+- It trusts one proxy hop, so per-IP login throttling works behind a host router.
+- `DATABASE_URL` is used with TLS (`rejectUnauthorized: false`), which some hosted Postgres services need.
+- On `SIGTERM` or `SIGINT` the server stops taking trades, waits up to 10 seconds for in-flight work per socket, flushes the last candles, and closes the database pool. A hard exit follows after 15 seconds.
