@@ -1,0 +1,36 @@
+name: Load test
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target URL, e.g. https://<app>.me (prefer staging: the test creates k6load-* users)"
+        required: true
+      peak:
+        description: "Peak concurrent sockets (start low, e.g. 20)"
+        default: "20"
+      hold:
+        description: "Time at peak"
+        default: "20s"
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+      - name: Run k6
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          PEAK: ${{ inputs.peak }}
+          HOLD: ${{ inputs.hold }}
+        run: k6 run -e BASE_URL="$BASE_URL" -e PEAK="$PEAK" -e HOLD="$HOLD" --summary-export=summary.json tests/k6-load-test.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-summary
+          path: summary.json

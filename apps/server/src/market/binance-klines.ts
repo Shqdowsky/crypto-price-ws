@@ -17,8 +17,8 @@ const FETCH_TIMEOUT_MS = 3_000;
 const MIN_GAP_MS = 60_000;
 
 export interface GapRange {
-	from: number; // first missing bucket start, epoch ms
-	to: number; // last missing bucket start, epoch ms
+	from: number;
+	to: number;
 }
 
 // Finds missing bucket ranges in an ascending page of candle times. A gap is two
