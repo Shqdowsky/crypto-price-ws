@@ -22,6 +22,7 @@ import pool from "./config/db.js";
 import { pruneRateLimits } from "./socket/middleware/rate-limit.middleware.js";
 import { initNotifier } from "./socket/notifier.js";
 import { pruneLoginThrottle } from "./http/service/login-throttle.js";
+import { startLoadStats } from "./monitoring/loadStats.js";
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpserver, {
 	cors: {
@@ -51,6 +52,9 @@ startCandleJobs();
 
 setInterval(pruneRateLimits, 60_000).unref();
 setInterval(pruneLoginThrottle, 60_000).unref();
+
+// Opt-in during load tests: LOAD_STATS=1 logs event-loop lag and DB pool pressure every 5s.
+if (process.env.LOAD_STATS === "1") startLoadStats(pool, () => io.engine.clientsCount);
 
 // Runs right before the pool closes so the last buffered second is persisted.
 async function stopCandles(): Promise<void> {
