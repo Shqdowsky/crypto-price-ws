@@ -28,8 +28,6 @@ let cleanupTimer: NodeJS.Timeout | undefined;
 let rollupRunning = false;
 let cleanupRunning = false;
 
-// Order matters: 1m is built first (1s rows live only 30 min, but a 1h candle needs
-// 60 min of source), then coarser intervals read the fresh 1m rows.
 async function runRollups(): Promise<void> {
 	if (rollupRunning) return;
 	rollupRunning = true;

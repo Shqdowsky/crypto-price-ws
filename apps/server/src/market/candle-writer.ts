@@ -9,8 +9,6 @@ interface SecondCandle {
 	close: number;
 }
 
-// Ticks are folded into per-second OHLC in memory and written in one batch per
-// flush: ~6 rows/s total instead of one INSERT per tick.
 let buffer = new Map<string, SecondCandle>();
 let timer: NodeJS.Timeout | undefined;
 let running = false;
@@ -56,7 +54,6 @@ export async function flush(): Promise<void> {
 			],
 		);
 	} catch (err) {
-		// Gaps are accepted; retrying would grow the buffer unboundedly during a DB outage.
 		console.error("[candle-writer] flush failed, batch dropped", err);
 	}
 }
@@ -64,7 +61,7 @@ export async function flush(): Promise<void> {
 export function startCandleWriter(): void {
 	if (timer) return;
 	timer = setInterval(() => {
-		if (running) return; // never overlap flushes
+		if (running) return;
 		running = true;
 		void flush().finally(() => {
 			running = false;
