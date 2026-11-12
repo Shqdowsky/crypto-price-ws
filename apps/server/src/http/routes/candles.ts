@@ -40,12 +40,12 @@ router.get("/:token", async (req: Request, res: Response) => {
 		return res.status(400).json({ error: issue?.message ?? "Invalid request" });
 	}
 	try {
-		const page = await getCandles({
+		const body = await getCandles({
 			token: params.data.token,
 			...query.data,
 			interval: query.data.interval as CandleInterval,
 		});
-		return res.json(page);
+		return res.type("application/json").send(body);
 	} catch (err) {
 		console.error("candles:get failed", err);
 		return res.status(500).json({ error: "Internal server error" });

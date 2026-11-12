@@ -10,6 +10,7 @@ import {
 	stopCandleWriter,
 } from "./market/candle-writer.js";
 import { startCandleJobs, stopCandleJobs } from "./market/candle-jobs.js";
+import { closeCandleCache, warmCandleCache } from "./market/candle-cache.js";
 import { SERVER_EVENTS } from "@crypto-price-ws/shared";
 import type {
 	ClientToServerEvents,
@@ -44,11 +45,11 @@ startPriceLoop((room, state) => {
 		PDChange: state.PDChange,
 		timestamp: state.updatedAt,
 	});
-	// Same updatedAt as the socket event, so client-built buckets match the stored ones.
 	recordTick(room, state.price, state.updatedAt);
 });
 startCandleWriter();
-startCandleJobs();
+
+void warmCandleCache().then(startCandleJobs);
 
 setInterval(pruneRateLimits, 60_000).unref();
 setInterval(pruneLoginThrottle, 60_000).unref();
@@ -56,12 +57,12 @@ setInterval(pruneLoginThrottle, 60_000).unref();
 // Opt-in during load tests: LOAD_STATS=1 logs event-loop lag and DB pool pressure every 5s.
 if (process.env.LOAD_STATS === "1") startLoadStats(pool, () => io.engine.clientsCount);
 
-// Runs right before the pool closes so the last buffered second is persisted.
 async function stopCandles(): Promise<void> {
 	stopPriceLoop();
 	stopCandleWriter();
 	stopCandleJobs();
 	await flushCandles();
+	await closeCandleCache();
 }
 
 httpserver.listen(env.WS_PORT, () => {
