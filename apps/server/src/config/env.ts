@@ -10,14 +10,8 @@ function requireEnv(key: string): string | number {
 	return value;
 }
 
-// Never read DATABASE_URL under test: a stray variable on a dev machine must not point the
-// suite (which creates and deletes users) at a real database.
 const databaseUrl = process.env.NODE_ENV === "test" ? undefined : process.env.DATABASE_URL;
 
-// One pool config for the app and the migrate script. Heroku Postgres provides only
-// DATABASE_URL and requires TLS with a certificate Node cannot verify, hence
-// rejectUnauthorized: false (the connection is still encrypted).
-// max is configurable: Heroku's smaller Postgres plans allow ~20 connections in total.
 export const dbConfig: PoolConfig = databaseUrl
 	? {
 			connectionString: databaseUrl,
@@ -35,11 +29,11 @@ export const dbConfig: PoolConfig = databaseUrl
 
 export const env = {
 	JWT_SECRET: requireEnv("JWT_SECRET"),
-	// Heroku assigns the port through PORT; locally WS_PORT is used.
 	WS_PORT: Number(process.env.PORT ?? requireEnv("WS_PORT")),
 	CLIENT_URL: requireEnv("CLIENT_URL") as string,
 	REFRESH_TOKEN_MAX_AGE: requireEnv("REFRESH_TOKEN_MAX_AGE"),
 	ACCESS_TOKEN_MAX_AGE: requireEnv("ACCESS_TOKEN_MAX_AGE"),
 	WS_URL: requireEnv("WS_URL"),
 	PRICE_SOURCE: requireEnv("PRICE_SOURCE"),
+	REDIS_URL: process.env.REDIS_URL || undefined,
 };

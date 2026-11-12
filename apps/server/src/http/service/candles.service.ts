@@ -1,6 +1,8 @@
 import type { CandleInterval, CandlePage, RoomName } from "@crypto-price-ws/shared";
 import pool from "../../config/db.js";
-import { backfillGaps } from "../../market/binance-klines.js";
+import { env } from "../../config/env.js";
+import { backfillGaps, findGaps } from "../../market/binance-klines.js";
+import { putCandles, readPage, timeOf } from "../../market/candle-cache.js";
 
 interface CandleQuery {
 	token: string;
@@ -18,8 +20,6 @@ interface Row {
 	close: number;
 }
 
-// Keyset pagination on bucket_start (never OFFSET): new rows arrive every second, so
-// an offset would shift between requests. Strict < / > keeps pages from overlapping.
 async function queryRows(q: CandleQuery): Promise<Row[]> {
 	const { token, interval, limit, before, after } = q;
 	const cols = "SELECT bucket_start, open, high, low, close FROM price_candles";
@@ -42,20 +42,40 @@ async function queryRows(q: CandleQuery): Promise<Row[]> {
 	return rows.reverse();
 }
 
-export async function getCandles(q: CandleQuery): Promise<CandlePage> {
+export async function getCandles(q: CandleQuery): Promise<string> {
+	// With a simulated source backfillGaps does nothing, so there are no holes to check for.
+	const mayBackfill = env.PRICE_SOURCE !== "simulated";
+
+	const cached = await readPage(q);
+	if (cached) {
+		const holey =
+			mayBackfill &&
+			q.after === undefined &&
+			findGaps(cached.map(timeOf), q.interval, q.limit, Date.now(), q.before).length > 0;
+		if (!holey) return `{"candles":[${cached.join(",")}],"hasMore":${cached.length === q.limit}}`;
+	}
+
 	let rows = await queryRows(q);
 
-	// Latest page and scroll-back pages: fill holes from Binance, then re-read so the client
-	// gets one consistent page. Older pages need it too, or holes outside the first window
-	// would never be filled. The live `after` refresh is skipped: ticks build those buckets.
 	if (q.after === undefined) {
 		const times = rows.map((r) => r.bucket_start.getTime());
 		if (await backfillGaps(q.token as RoomName, q.interval, times, q.limit, q.before)) {
 			rows = await queryRows(q);
+			await putCandles(
+				rows.map((r) => ({
+					token: q.token,
+					interval: q.interval,
+					time: r.bucket_start.getTime(),
+					open: r.open,
+					high: r.high,
+					low: r.low,
+					close: r.close,
+				})),
+			);
 		}
 	}
 
-	return {
+	const page: CandlePage = {
 		candles: rows.map((r) => ({
 			time: r.bucket_start.getTime(),
 			open: r.open,
@@ -65,4 +85,5 @@ export async function getCandles(q: CandleQuery): Promise<CandlePage> {
 		})),
 		hasMore: rows.length === q.limit,
 	};
+	return JSON.stringify(page);
 }

@@ -1,12 +1,23 @@
 import { CANDLE_INTERVALS, CANDLE_RETENTION_SEC } from "@crypto-price-ws/shared";
 import pool from "../config/db.js";
+import { putCandles } from "./candle-cache.js";
+
+interface RolledRow {
+	token: string;
+	interval_sec: number;
+	bucket_start: Date;
+	open: number;
+	high: number;
+	low: number;
+	close: number;
+}
 
 // Recomputes the previous bucket and the current (still open) bucket of `target`
 // from `source` rows. The open bucket is overwritten each run until it closes.
 async function rollup(target: number, source: number): Promise<void> {
 	const bucketMs = target * 1000;
 	const from = new Date(Math.floor(Date.now() / bucketMs) * bucketMs - bucketMs);
-	await pool.query(
+	const { rows } = await pool.query<RolledRow>(
 		`INSERT INTO price_candles (token, interval_sec, bucket_start, open, high, low, close)
 		SELECT token, $1::int,
 			date_bin(make_interval(secs => $1::int), bucket_start, TIMESTAMPTZ '1970-01-01 00:00:00+00') AS b,
@@ -18,8 +29,21 @@ async function rollup(target: number, source: number): Promise<void> {
 		WHERE interval_sec = $2::int AND bucket_start >= $3::timestamptz
 		GROUP BY token, b
 		ON CONFLICT (token, interval_sec, bucket_start) DO UPDATE
-		SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close`,
+		SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close
+		RETURNING token, interval_sec, bucket_start, open, high, low, close`,
 		[target, source, from.toISOString()],
+	);
+
+	await putCandles(
+		rows.map((r) => ({
+			token: r.token,
+			interval: r.interval_sec,
+			time: r.bucket_start.getTime(),
+			open: r.open,
+			high: r.high,
+			low: r.low,
+			close: r.close,
+		})),
 	);
 }
 
