@@ -1,25 +1,29 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
-import { initialSocketState, socketReducer, type SocketState } from "./socketReducer";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import type { UnknownAction } from "@reduxjs/toolkit";
+import { useQueryClient } from "@tanstack/react-query";
 import { io, type Socket } from "socket.io-client";
 import {
 	CLIENT_EVENTS,
 	SERVER_EVENTS,
+	type AckResponse,
 	type ClientToServerEvents,
+	type FundingRequest,
 	type RoomName,
 	type ServerToClientEvents,
 	type TradeConfirm,
 } from "@crypto-price-ws/shared";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { FundingRequest } from "@crypto-price-ws/shared";
 import { MY_FUNDING_KEY } from "../../hooks/fundingQueries";
+import { socketActions, type SocketState } from "./socketReducer";
+import { createSocketStore, type AppDispatch, type RootState } from "./store";
 
 const WS_URL = import.meta.env.VITE_SERVER_URL;
 const ACK_TIMEOUT_MS = Number(import.meta.env.VITE_ACK_TIMEOUT_MS) || 5000;
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+type TimedSocket = ReturnType<ClientSocket["timeout"]>;
+
 interface SocketContextValue {
-	state: SocketState;
 	getPrice: (room: RoomName) => void;
 	trade: (
 		token: RoomName,
@@ -67,15 +71,41 @@ function waitForConnection(getSocket: () => ClientSocket | null): Promise<Client
 	return pendingSocketPromise;
 }
 
-export function SocketProvider({ children }: { children: React.ReactNode }) {
-	const [state, dispatch] = useReducer(socketReducer, initialSocketState);
+async function ackRequest<T>(
+	getSocket: () => ClientSocket | null,
+	dispatch: AppDispatch,
+	send: (socket: TimedSocket) => Promise<AckResponse<T>>,
+	timeoutMessage: string,
+	onData: (data: T) => UnknownAction,
+): Promise<T | null> {
+	const socket = await waitForConnection(getSocket);
+
+	try {
+		const res = await send(socket.timeout(ACK_TIMEOUT_MS));
+
+		if (!res.success) {
+			if (res.error) dispatch(socketActions.serverError(res.error));
+			return null;
+		}
+
+		if (!res.data) return null;
+		dispatch(onData(res.data));
+		return res.data;
+	} catch {
+		dispatch(socketActions.serverError({ code: "TIMEOUT", message: timeoutMessage }));
+		return null;
+	}
+}
+
+function SocketBridge({ children }: { children: React.ReactNode }) {
+	const dispatch = useDispatch<AppDispatch>();
 	const queryClient = useQueryClient();
 	const [fundingNotice, setFundingNotice] = useState<FundingRequest | null>(null);
 	const dismissFundingNotice = useCallback(() => setFundingNotice(null), []);
 	const socketRef = useRef<ClientSocket | null>(null);
 
 	useEffect(() => {
-		dispatch({ type: "CONNECTING" });
+		dispatch(socketActions.connecting());
 
 		const socket: ClientSocket = io(WS_URL, {
 			withCredentials: true,
@@ -85,209 +115,116 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
 		socketRef.current = socket;
 
-		socket.on("connect", () => {
-			dispatch({ type: "CONNECTED" });
-		});
+		socket.on("connect", () => dispatch(socketActions.connected()));
+		socket.on("disconnect", () => dispatch(socketActions.disconnected()));
+		socket.io.on("reconnect_attempt", () => dispatch(socketActions.reconnecting()));
 
-		socket.on("disconnect", () => {
-			dispatch({ type: "DISCONNECTED" });
-		});
-
-		socket.io.on("reconnect_attempt", () => {
-			dispatch({ type: "RECONNECTING" });
-		});
-
-		socket.on(SERVER_EVENTS.PRICE_UPDATE, (payload) => {
-			dispatch({ type: "PRICE_UPDATE", payload });
-		});
-
-		socket.on(SERVER_EVENTS.PRICE_CURRENT, (payload) => {
-			dispatch({ type: "PRICE_CURRENT", payload });
-		});
-
-		socket.on(SERVER_EVENTS.TRADE_CONFIRM, (payload) => {
-			dispatch({ type: "TRADE_CONFIRM", payload });
-		});
-
-		socket.on(SERVER_EVENTS.HISTORY_RESULT, (payload) => {
-			dispatch({ type: "HISTORY_RESULT", trades: payload.trades });
-		});
-
-		socket.on(SERVER_EVENTS.BALANCE_UPDATED, (payload) => {
-			dispatch({ type: "BALANCE_UPDATED", balance: payload.balance });
-		});
-
-		socket.on(SERVER_EVENTS.ACCOUNT_STATE, (payload) => {
-			dispatch({ type: "ACCOUNT_STATE", payload });
-		});
-
+		socket.on(SERVER_EVENTS.PRICE_UPDATE, (payload) =>
+			dispatch(socketActions.priceUpdate(payload)),
+		);
+		socket.on(SERVER_EVENTS.PRICE_CURRENT, (payload) =>
+			dispatch(socketActions.priceCurrent(payload)),
+		);
+		socket.on(SERVER_EVENTS.TRADE_CONFIRM, (payload) =>
+			dispatch(socketActions.tradeConfirm(payload)),
+		);
+		socket.on(SERVER_EVENTS.HISTORY_RESULT, (payload) =>
+			dispatch(socketActions.historyResult(payload)),
+		);
+		socket.on(SERVER_EVENTS.BALANCE_UPDATED, (payload) =>
+			dispatch(socketActions.balanceUpdated(payload.balance)),
+		);
+		socket.on(SERVER_EVENTS.ACCOUNT_STATE, (payload) =>
+			dispatch(socketActions.accountState(payload)),
+		);
 		socket.on(SERVER_EVENTS.FUNDING_REVIEWED, ({ request }) => {
 			setFundingNotice(request);
 			void queryClient.invalidateQueries({ queryKey: MY_FUNDING_KEY });
 		});
-
-		socket.on(SERVER_EVENTS.RATE_LIMITED, (payload) => {
-			dispatch({ type: "RATE_LIMITED", retryAfterMs: payload.retryAfterMs });
-		});
-
-		socket.on(SERVER_EVENTS.ERROR, (payload) => {
-			dispatch({ type: "SERVER_ERROR", payload });
-		});
+		socket.on(SERVER_EVENTS.RATE_LIMITED, (payload) =>
+			dispatch(socketActions.rateLimited(payload.retryAfterMs)),
+		);
+		socket.on(SERVER_EVENTS.ERROR, (payload) => dispatch(socketActions.serverError(payload)));
 
 		return () => {
 			socket.disconnect();
 			socketRef.current = null;
 		};
-	}, []);
+	}, [dispatch, queryClient]);
 
-	const getPrice = useCallback(async (room: RoomName) => {
-		const socket = await waitForConnection(() => socketRef.current);
-
-		try {
-			const res = await socket.timeout(ACK_TIMEOUT_MS).emitWithAck(CLIENT_EVENTS.GET_PRICE, room);
-
-			if (!res.success) {
-				if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-				return;
-			}
-
-			if (res.data) dispatch({ type: "PRICE_CURRENT", payload: res.data });
-		} catch {
-			dispatch({
-				type: "SERVER_ERROR",
-				payload: { code: "TIMEOUT", message: "Server did not respond to price request" },
-			});
-		}
-	}, []);
-
-	const trade = useCallback(
-		async (
-			token: RoomName,
-			side: "buy" | "sell",
-			quantity: number | "all",
-		): Promise<TradeConfirm | null> => {
-			dispatch({ type: "CLEAR_ERROR" });
-			const socket = await waitForConnection(() => socketRef.current);
-
-			try {
-				const res = await socket
-					.timeout(ACK_TIMEOUT_MS)
-					.emitWithAck(CLIENT_EVENTS.TRADE, { token, side, quantity });
-
-				if (!res.success) {
-					if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-					return null;
-				}
-
-				if (res.data) dispatch({ type: "TRADE_CONFIRM", payload: res.data });
-				return res.data ?? null;
-			} catch {
-				dispatch({
-					type: "SERVER_ERROR",
-					payload: { code: "TIMEOUT", message: "Server did not respond to trade request" },
-				});
-				return null;
-			}
-		},
-		[],
+	const request = useCallback(
+		<T,>(
+			send: (socket: TimedSocket) => Promise<AckResponse<T>>,
+			timeoutMessage: string,
+			onData: (data: T) => UnknownAction,
+		) => ackRequest(() => socketRef.current, dispatch, send, timeoutMessage, onData),
+		[dispatch],
 	);
 
-	const fetchHistory = useCallback(async () => {
-		const socket = await waitForConnection(() => socketRef.current);
+	const getPrice = useCallback(
+		(room: RoomName) => {
+			void request(
+				(s) => s.emitWithAck(CLIENT_EVENTS.GET_PRICE, room),
+				"Server did not respond to price request",
+				socketActions.priceCurrent,
+			);
+		},
+		[request],
+	);
 
-		try {
-			const res = await socket.timeout(ACK_TIMEOUT_MS).emitWithAck(CLIENT_EVENTS.HISTORY);
+	const trade = useCallback(
+		(token: RoomName, side: "buy" | "sell", quantity: number | "all") => {
+			dispatch(socketActions.clearError());
+			return request(
+				(s) => s.emitWithAck(CLIENT_EVENTS.TRADE, { token, side, quantity }),
+				"Server did not respond to trade request",
+				socketActions.tradeConfirm,
+			);
+		},
+		[dispatch, request],
+	);
 
-			if (!res.success) {
-				if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-				return;
-			}
+	const fetchHistory = useCallback(() => {
+		void request(
+			(s) => s.emitWithAck(CLIENT_EVENTS.HISTORY),
+			"Server did not respond to history request",
+			socketActions.historyResult,
+		);
+	}, [request]);
 
-			if (res.data) dispatch({ type: "HISTORY_RESULT", trades: res.data.trades });
-		} catch {
-			dispatch({
-				type: "SERVER_ERROR",
-				payload: { code: "TIMEOUT", message: "Server did not respond to history request" },
-			});
-		}
-	}, []);
+	const getAccountState = useCallback(() => {
+		void request(
+			(s) => s.emitWithAck(CLIENT_EVENTS.GET_ACCOUNT_STATE),
+			"Server did not respond to account state request",
+			socketActions.accountState,
+		);
+	}, [request]);
 
-	const getAccountState = useCallback(async () => {
-		const socket = await waitForConnection(() => socketRef.current);
+	const getPositionHistory = useCallback(
+		(token: RoomName) => {
+			void request(
+				(s) => s.emitWithAck(CLIENT_EVENTS.GET_POSITION_HISTORY, { token }),
+				"Server did not respond to position history request",
+				socketActions.positionHistoryResult,
+			);
+		},
+		[request],
+	);
 
-		try {
-			const res = await socket.timeout(ACK_TIMEOUT_MS).emitWithAck(CLIENT_EVENTS.GET_ACCOUNT_STATE);
-
-			if (!res.success) {
-				if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-				return;
-			}
-
-			if (res.data) dispatch({ type: "ACCOUNT_STATE", payload: res.data });
-		} catch {
-			dispatch({
-				type: "SERVER_ERROR",
-				payload: { code: "TIMEOUT", message: "Server did not respond to account state request" },
-			});
-		}
-	}, []);
-
-	const getPositionHistory = useCallback(async (token: RoomName) => {
-		const socket = await waitForConnection(() => socketRef.current);
-
-		try {
-			const res = await socket
-				.timeout(ACK_TIMEOUT_MS)
-				.emitWithAck(CLIENT_EVENTS.GET_POSITION_HISTORY, { token });
-
-			if (!res.success) {
-				if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-				return;
-			}
-
-			if (res.data) {
-				dispatch({
-					type: "POSITION_HISTORY_RESULT",
-					token: res.data.token,
-					positions: res.data.positions,
-				});
-			}
-		} catch {
-			dispatch({
-				type: "SERVER_ERROR",
-				payload: { code: "TIMEOUT", message: "Server did not respond to position history request" },
-			});
-		}
-	}, []);
-
-	const getTradeHistory = useCallback(async (token: RoomName) => {
-		const socket = await waitForConnection(() => socketRef.current);
-
-		try {
-			const res = await socket
-				.timeout(ACK_TIMEOUT_MS)
-				.emitWithAck(CLIENT_EVENTS.GET_TRADE_HISTORY, { token });
-
-			if (!res.success) {
-				if (res.error) dispatch({ type: "SERVER_ERROR", payload: res.error });
-				return;
-			}
-
-			if (res.data) {
-				dispatch({ type: "TRADE_HISTORY_RESULT", token: res.data.token, trades: res.data.trades });
-			}
-		} catch {
-			dispatch({
-				type: "SERVER_ERROR",
-				payload: { code: "TIMEOUT", message: "Server did not respond to trade history request" },
-			});
-		}
-	}, []);
+	const getTradeHistory = useCallback(
+		(token: RoomName) => {
+			void request(
+				(s) => s.emitWithAck(CLIENT_EVENTS.GET_TRADE_HISTORY, { token }),
+				"Server did not respond to trade history request",
+				socketActions.tradeHistoryResult,
+			);
+		},
+		[request],
+	);
 
 	return (
 		<SocketContext.Provider
 			value={{
-				state,
 				getPrice,
 				trade,
 				fetchHistory,
@@ -301,6 +238,23 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 			{children}
 		</SocketContext.Provider>
 	);
+}
+
+export function SocketProvider({ children }: { children: React.ReactNode }) {
+	const [store] = useState(createSocketStore);
+
+	return (
+		<Provider store={store}>
+			<SocketBridge>{children}</SocketBridge>
+		</Provider>
+	);
+}
+
+// Subscribes to a slice of the socket state; re-renders only when the selected value changes.
+// Return existing references (e.g. `s.prices[token]`), not freshly built objects or arrays.
+// eslint-disable-next-line react-refresh/only-export-components
+export function useSocketSelector<T>(selector: (state: SocketState) => T): T {
+	return useSelector((root: RootState) => selector(root.socket));
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
