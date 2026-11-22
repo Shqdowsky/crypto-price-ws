@@ -9,8 +9,8 @@ import type {
 } from "@crypto-price-ws/shared";
 import {
 	initialSocketState,
+	socketActions as a,
 	socketReducer,
-	type SocketAction,
 	type SocketState,
 } from "./socketReducer";
 
@@ -79,23 +79,21 @@ function makeTradeEntry(overrides: Partial<TradeHistoryEntry> = {}): TradeHistor
 }
 
 describe("connection status", () => {
-	it.each([
-		["CONNECTING", "connecting"],
-		["CONNECTED", "connected"],
-		["RECONNECTING", "reconnecting"],
-		["DISCONNECTED", "disconnected"],
-	] as const)("%s sets status to %s", (type, expected) => {
-		const next = socketReducer(stateWith(), { type });
-		expect(next.connectionStatus).toBe(expected);
-	});
+	it.each(["connecting", "connected", "reconnecting", "disconnected"] as const)(
+		"%s() sets the status",
+		(name) => {
+			const next = socketReducer(stateWith(), a[name]());
+			expect(next.connectionStatus).toBe(name);
+		},
+	);
 });
 
 describe("prices", () => {
-	it.each(["PRICE_UPDATE", "PRICE_CURRENT"] as const)(
+	it.each(["priceUpdate", "priceCurrent"] as const)(
 		"%s stores the latest price and appends to history",
-		(type) => {
+		(name) => {
 			const payload = makePrice("btc", 65000, 1000);
-			const after = socketReducer(stateWith(), { type, payload });
+			const after = socketReducer(stateWith(), a[name](payload));
 
 			expect(after.prices.btc).toEqual(payload);
 			expect(after.priceHistory.btc).toEqual([{ price: 65000, timestamp: 1000 }]);
@@ -104,8 +102,8 @@ describe("prices", () => {
 
 	it("keeps history per token independently", () => {
 		let state = stateWith();
-		state = socketReducer(state, { type: "PRICE_UPDATE", payload: makePrice("btc", 1, 1) });
-		state = socketReducer(state, { type: "PRICE_UPDATE", payload: makePrice("eth", 2, 2) });
+		state = socketReducer(state, a.priceUpdate(makePrice("btc", 1, 1)));
+		state = socketReducer(state, a.priceUpdate(makePrice("eth", 2, 2)));
 
 		expect(state.priceHistory.btc).toHaveLength(1);
 		expect(state.priceHistory.eth).toHaveLength(1);
@@ -114,10 +112,7 @@ describe("prices", () => {
 	it("caps history at the limit, dropping the oldest points first", () => {
 		let state = stateWith();
 		for (let i = 0; i < PRICE_HISTORY_LIMIT + 5; i++) {
-			state = socketReducer(state, {
-				type: "PRICE_UPDATE",
-				payload: makePrice("btc", i, 1000 + i),
-			});
+			state = socketReducer(state, a.priceUpdate(makePrice("btc", i, 1000 + i)));
 		}
 
 		const history = state.priceHistory.btc!;
@@ -130,14 +125,14 @@ describe("prices", () => {
 	});
 });
 
-describe("TRADE_CONFIRM", () => {
+describe("tradeConfirm", () => {
 	it("a trade that leaves the position open updates openPositions and appends a trade entry", () => {
 		const confirm = makeTradeConfirm({
 			id: 10,
 			position: makePosition({ quantity: "10.00000000" }),
 		});
 
-		const after = socketReducer(stateWith(), { type: "TRADE_CONFIRM", payload: confirm });
+		const after = socketReducer(stateWith(), a.tradeConfirm(confirm));
 
 		expect(after.openPositions.btc?.quantity).toBe("10.00000000");
 		expect(after.closedPositions.btc).toBeUndefined();
@@ -146,7 +141,7 @@ describe("TRADE_CONFIRM", () => {
 
 	it("stores only the flat trade fields in trades, not the nested position", () => {
 		const confirm = makeTradeConfirm({ id: 10 });
-		const after = socketReducer(stateWith(), { type: "TRADE_CONFIRM", payload: confirm });
+		const after = socketReducer(stateWith(), a.tradeConfirm(confirm));
 
 		expect(after.trades.btc![0]).toEqual({
 			id: 10,
@@ -166,7 +161,7 @@ describe("TRADE_CONFIRM", () => {
 			position: makeClosedPosition({ id: 7 }),
 		});
 
-		const after = socketReducer(before, { type: "TRADE_CONFIRM", payload: confirm });
+		const after = socketReducer(before, a.tradeConfirm(confirm));
 
 		expect(after.openPositions.btc).toBeUndefined();
 		expect(after.closedPositions.btc).toHaveLength(1);
@@ -197,7 +192,7 @@ describe("TRADE_CONFIRM", () => {
 		];
 
 		const final = actions.reduce(
-			(state, payload) => socketReducer(state, { type: "TRADE_CONFIRM", payload }),
+			(state, payload) => socketReducer(state, a.tradeConfirm(payload)),
 			stateWith(),
 		);
 
@@ -209,22 +204,22 @@ describe("TRADE_CONFIRM", () => {
 	it("is idempotent for the same trade id (duplicate delivery does not double-log)", () => {
 		const confirm = makeTradeConfirm({ id: 42 });
 
-		let state = socketReducer(stateWith(), { type: "TRADE_CONFIRM", payload: confirm });
-		state = socketReducer(state, { type: "TRADE_CONFIRM", payload: confirm });
+		let state = socketReducer(stateWith(), a.tradeConfirm(confirm));
+		state = socketReducer(state, a.tradeConfirm(confirm));
 
 		expect(state.trades.btc).toHaveLength(1);
 	});
 
 	it("keeps trades sorted newest-first even when an older trade arrives later", () => {
 		let state = stateWith();
-		state = socketReducer(state, {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm({ id: 2, createdAt: "2026-01-01T00:00:10.000Z" }),
-		});
-		state = socketReducer(state, {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm({ id: 1, createdAt: "2026-01-01T00:00:05.000Z" }),
-		});
+		state = socketReducer(
+			state,
+			a.tradeConfirm(makeTradeConfirm({ id: 2, createdAt: "2026-01-01T00:00:10.000Z" })),
+		);
+		state = socketReducer(
+			state,
+			a.tradeConfirm(makeTradeConfirm({ id: 1, createdAt: "2026-01-01T00:00:05.000Z" })),
+		);
 
 		expect(state.trades.btc!.map((t) => t.id)).toEqual([2, 1]);
 	});
@@ -235,10 +230,7 @@ describe("TRADE_CONFIRM", () => {
 			trades: { eth: [makeTradeEntry({ id: 99, token: "eth" })] },
 		});
 
-		const after = socketReducer(before, {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm({ id: 1, token: "btc" }),
-		});
+		const after = socketReducer(before, a.tradeConfirm(makeTradeConfirm({ id: 1, token: "btc" })));
 
 		expect(after.openPositions.eth).toEqual(before.openPositions.eth);
 		expect(after.trades.eth).toHaveLength(1);
@@ -248,10 +240,7 @@ describe("TRADE_CONFIRM", () => {
 		const before = stateWith();
 		const openBefore = before.openPositions;
 
-		const after = socketReducer(before, {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm(),
-		});
+		const after = socketReducer(before, a.tradeConfirm(makeTradeConfirm()));
 
 		expect(after).not.toBe(before);
 		expect(after.openPositions).not.toBe(openBefore);
@@ -260,10 +249,10 @@ describe("TRADE_CONFIRM", () => {
 	});
 
 	it("TRADE_CONFIRM clears a previous error", () => {
-		const withError = socketReducer(initialSocketState, {
-			type: "SERVER_ERROR",
-			payload: { code: "INSUFFICIENT_BALANCE", message: "Insufficient balance" },
-		});
+		const withError = socketReducer(
+			initialSocketState,
+			a.serverError({ code: "INSUFFICIENT_BALANCE", message: "Insufficient balance" }),
+		);
 		expect(withError.lastError).not.toBeNull();
 
 		const confirm = makeTradeConfirm({
@@ -271,13 +260,13 @@ describe("TRADE_CONFIRM", () => {
 			position: makePosition({ quantity: "10.00000000" }),
 		});
 
-		const next = socketReducer(withError, { type: "TRADE_CONFIRM", payload: confirm });
+		const next = socketReducer(withError, a.tradeConfirm(confirm));
 
 		expect(next.lastError).toBeNull();
 	});
 });
 
-describe("ACCOUNT_STATE", () => {
+describe("accountState", () => {
 	it("sets balance and groups open/closed positions by token", () => {
 		const payload: AccountState = {
 			balance: "850.00",
@@ -289,7 +278,7 @@ describe("ACCOUNT_STATE", () => {
 			],
 		};
 
-		const after = socketReducer(stateWith(), { type: "ACCOUNT_STATE", payload });
+		const after = socketReducer(stateWith(), a.accountState(payload));
 
 		expect(after.balance).toBe("850.00");
 		expect(after.openPositions.btc!.id).toBe(1);
@@ -305,44 +294,46 @@ describe("ACCOUNT_STATE", () => {
 			closedPositions: { eth: [makeClosedPosition({ id: 98, token: "eth" })] },
 		});
 
-		const after = socketReducer(before, {
-			type: "ACCOUNT_STATE",
-			payload: {
+		const after = socketReducer(
+			before,
+			a.accountState({
 				balance: "1000.00",
 				openPositions: [makePosition({ id: 1, token: "btc" })],
 				closedPositions: [],
-			},
-		});
+			}),
+		);
 
 		expect(after.openPositions.eth).toBeUndefined();
 		expect(after.closedPositions.eth).toBeUndefined();
 		expect(after.openPositions.btc!.id).toBe(1);
 	});
 
-	it("BALANCE_UPDATED patches only the balance", () => {
+	it("balanceUpdated patches only the balance", () => {
 		const before = stateWith({
 			balance: "1000.00",
 			openPositions: { btc: makePosition() },
 		});
 
-		const after = socketReducer(before, { type: "BALANCE_UPDATED", balance: "900.00" });
+		const after = socketReducer(before, a.balanceUpdated("900.00"));
 
 		expect(after.balance).toBe("900.00");
 		expect(after.openPositions).toBe(before.openPositions);
 	});
 });
 
-describe("POSITION_HISTORY_RESULT (closed position merging)", () => {
+describe("positionHistoryResult (closed position merging)", () => {
 	it("sorts closed positions by closedAt, newest first", () => {
-		const after = socketReducer(stateWith(), {
-			type: "POSITION_HISTORY_RESULT",
-			token: "btc",
-			positions: [
-				makeClosedPosition({ id: 1, closedAt: "2026-01-01T00:00:00.000Z" }),
-				makeClosedPosition({ id: 2, closedAt: "2026-01-03T00:00:00.000Z" }),
-				makeClosedPosition({ id: 3, closedAt: "2026-01-02T00:00:00.000Z" }),
-			],
-		});
+		const after = socketReducer(
+			stateWith(),
+			a.positionHistoryResult({
+				token: "btc",
+				positions: [
+					makeClosedPosition({ id: 1, closedAt: "2026-01-01T00:00:00.000Z" }),
+					makeClosedPosition({ id: 2, closedAt: "2026-01-03T00:00:00.000Z" }),
+					makeClosedPosition({ id: 3, closedAt: "2026-01-02T00:00:00.000Z" }),
+				],
+			}),
+		);
 
 		expect(after.closedPositions.btc!.map((p) => p.id)).toEqual([2, 3, 1]);
 	});
@@ -352,11 +343,13 @@ describe("POSITION_HISTORY_RESULT (closed position merging)", () => {
 			closedPositions: { btc: [makeClosedPosition({ id: 1 })] },
 		});
 
-		const after = socketReducer(before, {
-			type: "POSITION_HISTORY_RESULT",
-			token: "btc",
-			positions: [makeClosedPosition({ id: 2, closedAt: "2026-01-05T00:00:00.000Z" })],
-		});
+		const after = socketReducer(
+			before,
+			a.positionHistoryResult({
+				token: "btc",
+				positions: [makeClosedPosition({ id: 2, closedAt: "2026-01-05T00:00:00.000Z" })],
+			}),
+		);
 
 		expect(after.closedPositions.btc!.map((p) => p.id).sort()).toEqual([1, 2]);
 	});
@@ -366,11 +359,13 @@ describe("POSITION_HISTORY_RESULT (closed position merging)", () => {
 			closedPositions: { btc: [makeClosedPosition({ id: 7, realizedPnl: "10.00" })] },
 		});
 
-		const after = socketReducer(before, {
-			type: "POSITION_HISTORY_RESULT",
-			token: "btc",
-			positions: [makeClosedPosition({ id: 7, realizedPnl: "12.00" })],
-		});
+		const after = socketReducer(
+			before,
+			a.positionHistoryResult({
+				token: "btc",
+				positions: [makeClosedPosition({ id: 7, realizedPnl: "12.00" })],
+			}),
+		);
 
 		expect(after.closedPositions.btc).toHaveLength(1);
 		expect(after.closedPositions.btc![0]!.realizedPnl).toBe("12.00");
@@ -379,15 +374,11 @@ describe("POSITION_HISTORY_RESULT (closed position merging)", () => {
 	it("live close followed by the fetch result does not duplicate the position", () => {
 		const closed = makeClosedPosition({ id: 7 });
 
-		let state = socketReducer(stateWith(), {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm({ id: 1, side: "sell", position: closed }),
-		});
-		state = socketReducer(state, {
-			type: "POSITION_HISTORY_RESULT",
-			token: "btc",
-			positions: [closed],
-		});
+		let state = socketReducer(
+			stateWith(),
+			a.tradeConfirm(makeTradeConfirm({ id: 1, side: "sell", position: closed })),
+		);
+		state = socketReducer(state, a.positionHistoryResult({ token: "btc", positions: [closed] }));
 
 		expect(state.closedPositions.btc).toHaveLength(1);
 	});
@@ -395,34 +386,35 @@ describe("POSITION_HISTORY_RESULT (closed position merging)", () => {
 	it("fetch result followed by the live close does not duplicate the position", () => {
 		const closed = makeClosedPosition({ id: 7 });
 
-		let state = socketReducer(stateWith(), {
-			type: "POSITION_HISTORY_RESULT",
-			token: "btc",
-			positions: [closed],
-		});
-		state = socketReducer(state, {
-			type: "TRADE_CONFIRM",
-			payload: makeTradeConfirm({ id: 1, side: "sell", position: closed }),
-		});
+		let state = socketReducer(
+			stateWith(),
+			a.positionHistoryResult({ token: "btc", positions: [closed] }),
+		);
+		state = socketReducer(
+			state,
+			a.tradeConfirm(makeTradeConfirm({ id: 1, side: "sell", position: closed })),
+		);
 
 		expect(state.closedPositions.btc).toHaveLength(1);
 	});
 });
 
-describe("TRADE_HISTORY_RESULT (trade merging)", () => {
+describe("tradeHistoryResult (trade merging)", () => {
 	it("merges the fetched history with live session trades without duplicates", () => {
 		const live = makeTradeConfirm({ id: 3, createdAt: "2026-01-03T00:00:00.000Z" });
-		let state = socketReducer(stateWith(), { type: "TRADE_CONFIRM", payload: live });
+		let state = socketReducer(stateWith(), a.tradeConfirm(live));
 
-		state = socketReducer(state, {
-			type: "TRADE_HISTORY_RESULT",
-			token: "btc",
-			trades: [
-				makeTradeEntry({ id: 3, createdAt: "2026-01-03T00:00:00.000Z" }),
-				makeTradeEntry({ id: 2, createdAt: "2026-01-02T00:00:00.000Z" }),
-				makeTradeEntry({ id: 1, createdAt: "2026-01-01T00:00:00.000Z" }),
-			],
-		});
+		state = socketReducer(
+			state,
+			a.tradeHistoryResult({
+				token: "btc",
+				trades: [
+					makeTradeEntry({ id: 3, createdAt: "2026-01-03T00:00:00.000Z" }),
+					makeTradeEntry({ id: 2, createdAt: "2026-01-02T00:00:00.000Z" }),
+					makeTradeEntry({ id: 1, createdAt: "2026-01-01T00:00:00.000Z" }),
+				],
+			}),
+		);
 
 		expect(state.trades.btc!.map((t) => t.id)).toEqual([3, 2, 1]);
 	});
@@ -432,19 +424,18 @@ describe("TRADE_HISTORY_RESULT (trade merging)", () => {
 			trades: { eth: [makeTradeEntry({ id: 50, token: "eth" })] },
 		});
 
-		const after = socketReducer(before, {
-			type: "TRADE_HISTORY_RESULT",
-			token: "btc",
-			trades: [makeTradeEntry({ id: 1 })],
-		});
+		const after = socketReducer(
+			before,
+			a.tradeHistoryResult({ token: "btc", trades: [makeTradeEntry({ id: 1 })] }),
+		);
 
 		expect(after.trades.eth).toHaveLength(1);
 		expect(after.trades.btc).toHaveLength(1);
 	});
 
-	it("HISTORY_RESULT stores the all-token history as-is", () => {
+	it("historyResult stores the all-token history as-is", () => {
 		const trades = [{ id: 1 }, { id: 2 }] as unknown as TradeRow[];
-		const after = socketReducer(stateWith(), { type: "HISTORY_RESULT", trades });
+		const after = socketReducer(stateWith(), a.historyResult({ trades }));
 
 		expect(after.tradeHistory).toBe(trades);
 	});
@@ -461,7 +452,7 @@ describe("errors and rate limiting", () => {
 	});
 
 	it("RATE_LIMITED sets rateLimitedUntil to now + retryAfterMs", () => {
-		const after = socketReducer(stateWith(), { type: "RATE_LIMITED", retryAfterMs: 5000 });
+		const after = socketReducer(stateWith(), a.rateLimited(5000));
 
 		expect(after.rateLimitedUntil).toBe(Date.now() + 5000);
 	});
@@ -469,10 +460,10 @@ describe("errors and rate limiting", () => {
 	it("SERVER_ERROR stores the error and CLEAR_ERROR removes it", () => {
 		const error = { code: "INSUFFICIENT_BALANCE", message: "Not enough funds" };
 
-		const withError = socketReducer(stateWith(), { type: "SERVER_ERROR", payload: error });
+		const withError = socketReducer(stateWith(), a.serverError(error));
 		expect(withError.lastError).toEqual(error);
 
-		const cleared = socketReducer(withError, { type: "CLEAR_ERROR" });
+		const cleared = socketReducer(withError, a.clearError());
 		expect(cleared.lastError).toBeNull();
 	});
 });
@@ -480,7 +471,7 @@ describe("errors and rate limiting", () => {
 describe("unknown actions", () => {
 	it("returns the same state reference", () => {
 		const state = stateWith();
-		const next = socketReducer(state, { type: "NOT_A_REAL_ACTION" } as unknown as SocketAction);
+		const next = socketReducer(state, { type: "NOT_A_REAL_ACTION" });
 
 		expect(next).toBe(state);
 	});

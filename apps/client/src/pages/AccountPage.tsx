@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { Position, RoomName } from "@crypto-price-ws/shared";
-import { useSocketContext } from "../context/socket/SocketProvider";
+import { useSocketSelector } from "../context/socket/SocketProvider";
 import { formatAmount, formatSignedUsd, formatUsd } from "../utils/format";
 
 function toneClass(value: number | null): string {
@@ -18,27 +18,30 @@ function StatCard({ label, value, tone = "" }: { label: string; value: string; t
 }
 
 export function AccountPage() {
-	const { state } = useSocketContext();
+	const balance = useSocketSelector((s) => s.balance);
+	const openPositions = useSocketSelector((s) => s.openPositions);
+	const prices = useSocketSelector((s) => s.prices);
+	const closedPositions = useSocketSelector((s) => s.closedPositions);
 
-	const usdtBalance = Number(state.balance);
+	const usdtBalance = Number(balance);
 
-	const holdings = (
-		Object.entries(state.openPositions) as [RoomName, Position | undefined][]
-	).flatMap(([token, position]) => {
-		if (!position) return [];
-		const live = state.prices[token];
-		const qty = Number(position.quantity);
-		const avgCost = Number(position.avgCostBasis);
-		const price = live?.price ?? null;
-		return [
-			{
-				token,
-				quantity: position.quantity,
-				value: price !== null ? qty * price : null,
-				unrealizedPnl: price !== null ? qty * (price - avgCost) : null,
-			},
-		];
-	});
+	const holdings = (Object.entries(openPositions) as [RoomName, Position | undefined][]).flatMap(
+		([token, position]) => {
+			if (!position) return [];
+			const live = prices[token];
+			const qty = Number(position.quantity);
+			const avgCost = Number(position.avgCostBasis);
+			const price = live?.price ?? null;
+			return [
+				{
+					token,
+					quantity: position.quantity,
+					value: price !== null ? qty * price : null,
+					unrealizedPnl: price !== null ? qty * (price - avgCost) : null,
+				},
+			];
+		},
+	);
 
 	const tokensValue = holdings.reduce((sum, h) => sum + (h.value ?? 0), 0);
 	const totalValue = usdtBalance + tokensValue;
@@ -49,7 +52,7 @@ export function AccountPage() {
 			? pricedHoldings.reduce((sum, h) => sum + (h.unrealizedPnl ?? 0), 0)
 			: null;
 
-	const allTimeRealizedPnl = Object.values(state.closedPositions)
+	const allTimeRealizedPnl = Object.values(closedPositions)
 		.flat()
 		.reduce((sum, p) => sum + Number(p?.realizedPnl ?? 0), 0);
 

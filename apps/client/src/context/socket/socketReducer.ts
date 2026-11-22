@@ -1,3 +1,4 @@
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
 	TokenPayload,
 	TradeRow,
@@ -44,23 +45,6 @@ export const initialSocketState: SocketState = {
 	rateLimitedUntil: null,
 };
 
-export type SocketAction =
-	| { type: "CONNECTING" }
-	| { type: "CONNECTED" }
-	| { type: "RECONNECTING" }
-	| { type: "DISCONNECTED" }
-	| { type: "PRICE_UPDATE"; payload: TokenPayload }
-	| { type: "PRICE_CURRENT"; payload: TokenPayload }
-	| { type: "TRADE_CONFIRM"; payload: TradeConfirm }
-	| { type: "HISTORY_RESULT"; trades: TradeRow[] }
-	| { type: "ACCOUNT_STATE"; payload: AccountState }
-	| { type: "BALANCE_UPDATED"; balance: string }
-	| { type: "POSITION_HISTORY_RESULT"; token: RoomName; positions: Position[] }
-	| { type: "TRADE_HISTORY_RESULT"; token: RoomName; trades: TradeHistoryEntry[] }
-	| { type: "RATE_LIMITED"; retryAfterMs: number }
-	| { type: "SERVER_ERROR"; payload: ErrorResponse }
-	| { type: "CLEAR_ERROR" };
-
 function mergeClosedPositions(existing: Position[], incoming: Position[]): Position[] {
 	const byId = new Map<number, Position>();
 	for (const p of existing) byId.set(p.id, p);
@@ -82,109 +66,112 @@ function mergeTradeHistory(
 	);
 }
 
-export function socketReducer(state: SocketState, action: SocketAction): SocketState {
-	switch (action.type) {
-		case "CONNECTING":
-			return { ...state, connectionStatus: "connecting" };
+function recordPrice(state: SocketState, payload: TokenPayload) {
+	const { token, price, timestamp } = payload;
+	const history = (state.priceHistory[token] ??= []);
 
-		case "CONNECTED":
-			return { ...state, connectionStatus: "connected" };
+	history.push({ price, timestamp });
+	if (history.length > PRICE_HISTORY_LIMIT) history.shift();
+	state.prices[token] = payload;
+}
 
-		case "RECONNECTING":
-			return { ...state, connectionStatus: "reconnecting" };
+const socketSlice = createSlice({
+	name: "socket",
+	initialState: initialSocketState,
+	reducers: {
+		connecting(state) {
+			state.connectionStatus = "connecting";
+		},
+		connected(state) {
+			state.connectionStatus = "connected";
+		},
+		reconnecting(state) {
+			state.connectionStatus = "reconnecting";
+		},
+		disconnected(state) {
+			state.connectionStatus = "disconnected";
+		},
 
-		case "DISCONNECTED":
-			return { ...state, connectionStatus: "disconnected" };
+		// Live ticks and ack'd "current price" replies are handled identically.
+		priceUpdate(state, action: PayloadAction<TokenPayload>) {
+			recordPrice(state, action.payload);
+		},
+		priceCurrent(state, action: PayloadAction<TokenPayload>) {
+			recordPrice(state, action.payload);
+		},
 
-		case "PRICE_UPDATE":
-		case "PRICE_CURRENT": {
-			const { token, price, PDChange, timestamp } = action.payload;
-
-			const existingHistory = state.priceHistory[token] ?? [];
-			const updatedHistory =
-				existingHistory.length >= PRICE_HISTORY_LIMIT
-					? [...existingHistory.slice(1), { price, PDChange, timestamp }]
-					: [...existingHistory, { price, PDChange, timestamp }];
-			return {
-				...state,
-				prices: { ...state.prices, [token]: action.payload },
-				priceHistory: { ...state.priceHistory, [token]: updatedHistory },
-			};
-		}
-
-		case "TRADE_CONFIRM": {
+		tradeConfirm(state, action: PayloadAction<TradeConfirm>) {
 			const { token, position, id, side, price, quantity, createdAt } = action.payload;
-
 			const entry: TradeHistoryEntry = { id, token, side, price, quantity, createdAt };
-			const trades = {
-				...state.trades,
-				[token]: mergeTradeHistory(state.trades[token] ?? [], [entry]),
-			};
 
-			const openPositions = { ...state.openPositions };
-			const closedPositions = { ...state.closedPositions };
+			state.trades[token] = mergeTradeHistory(state.trades[token] ?? [], [entry]);
 
 			if (position.status === "closed") {
-				delete openPositions[token];
-				closedPositions[token] = mergeClosedPositions(state.closedPositions[token] ?? [], [
+				delete state.openPositions[token];
+				state.closedPositions[token] = mergeClosedPositions(state.closedPositions[token] ?? [], [
 					position,
 				]);
 			} else {
-				openPositions[token] = position;
+				state.openPositions[token] = position;
 			}
 
-			return {
-				...state,
-				trades,
-				openPositions,
-				closedPositions,
-				lastError: null,
-			};
-		}
+			state.lastError = null;
+		},
 
-		case "HISTORY_RESULT":
-			return { ...state, tradeHistory: action.trades };
+		historyResult(state, action: PayloadAction<{ trades: TradeRow[] }>) {
+			state.tradeHistory = action.payload.trades;
+		},
 
-		case "ACCOUNT_STATE": {
-			const openPositions: Partial<Record<RoomName, Position>> = {};
+		accountState(state, action: PayloadAction<AccountState>) {
+			const openPositions: SocketState["openPositions"] = {};
 			for (const pos of action.payload.openPositions) {
 				openPositions[pos.token] = pos;
 			}
-			const closedPositions: Partial<Record<RoomName, Position[]>> = {};
+			const closedPositions: SocketState["closedPositions"] = {};
 			for (const pos of action.payload.closedPositions) {
-				closedPositions[pos.token] = [...(closedPositions[pos.token] ?? []), pos];
+				(closedPositions[pos.token] ??= []).push(pos);
 			}
-			return { ...state, balance: action.payload.balance, openPositions, closedPositions };
-		}
+			state.balance = action.payload.balance;
+			state.openPositions = openPositions;
+			state.closedPositions = closedPositions;
+		},
 
-		case "BALANCE_UPDATED":
-			return { ...state, balance: action.balance };
+		balanceUpdated(state, action: PayloadAction<string>) {
+			state.balance = action.payload;
+		},
 
-		case "POSITION_HISTORY_RESULT": {
-			const closedPositions = { ...state.closedPositions };
-			closedPositions[action.token] = mergeClosedPositions(
-				state.closedPositions[action.token] ?? [],
-				action.positions,
+		positionHistoryResult(
+			state,
+			action: PayloadAction<{ token: RoomName; positions: Position[] }>,
+		) {
+			const { token, positions } = action.payload;
+			state.closedPositions[token] = mergeClosedPositions(
+				state.closedPositions[token] ?? [],
+				positions,
 			);
-			return { ...state, closedPositions };
-		}
+		},
 
-		case "TRADE_HISTORY_RESULT": {
-			const trades = { ...state.trades };
-			trades[action.token] = mergeTradeHistory(state.trades[action.token] ?? [], action.trades);
-			return { ...state, trades };
-		}
+		tradeHistoryResult(
+			state,
+			action: PayloadAction<{ token: RoomName; trades: TradeHistoryEntry[] }>,
+		) {
+			const { token, trades } = action.payload;
+			state.trades[token] = mergeTradeHistory(state.trades[token] ?? [], trades);
+		},
 
-		case "RATE_LIMITED":
-			return { ...state, rateLimitedUntil: Date.now() + action.retryAfterMs };
+		rateLimited(state, action: PayloadAction<number>) {
+			state.rateLimitedUntil = Date.now() + action.payload;
+		},
 
-		case "SERVER_ERROR":
-			return { ...state, lastError: action.payload };
+		serverError(state, action: PayloadAction<ErrorResponse>) {
+			state.lastError = action.payload;
+		},
 
-		case "CLEAR_ERROR":
-			return { ...state, lastError: null };
+		clearError(state) {
+			state.lastError = null;
+		},
+	},
+});
 
-		default:
-			return state;
-	}
-}
+export const socketActions = socketSlice.actions;
+export const socketReducer = socketSlice.reducer;

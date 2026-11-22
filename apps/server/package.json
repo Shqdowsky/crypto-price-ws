@@ -16,7 +16,7 @@
 		"test:coverage": "vitest run --coverage",
 		"lint": "eslint .",
 		"build": "tsc -p tsconfig.build.json",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc -b"
 	},
 	"repository": {
 		"type": "git",

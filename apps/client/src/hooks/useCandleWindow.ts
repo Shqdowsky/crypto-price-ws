@@ -7,7 +7,7 @@ import {
 	type RoomName,
 } from "@crypto-price-ws/shared";
 import { env } from "../config/env";
-import { useSocketContext } from "../context/socket/SocketProvider";
+import { useSocketSelector } from "../context/socket/SocketProvider";
 import type { PricePoint } from "../context/socket/socketReducer";
 import { applyTick } from "../utils/chart";
 import { authFetch } from "../utils/authFetch";
@@ -142,7 +142,6 @@ async function fetchPage(
 }
 
 export function useCandleWindow(token: RoomName, intervalSec: number) {
-	const { state: socket } = useSocketContext();
 	const [state, dispatch] = useReducer(windowReducer, initialWindowState);
 	const [attempt, setAttempt] = useState(0);
 
@@ -151,8 +150,8 @@ export function useCandleWindow(token: RoomName, intervalSec: number) {
 	const ctrlRef = useRef<AbortController | null>(null);
 	const inflight = useRef({ older: false, newer: false });
 
-	const payload = socket.prices[token];
-	const history = socket.priceHistory[token];
+	const payload = useSocketSelector((s) => s.prices[token]);
+	const history = useSocketSelector((s) => s.priceHistory[token]);
 
 	// Layout effect: it must run before child passive effects (PriceChart's load trigger),
 	// otherwise the first load() after "init" reads the stale ref and silently returns.

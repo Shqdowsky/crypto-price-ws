@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RoomName, TradeConfirm } from "@crypto-price-ws/shared";
-import { useSocketContext } from "../context/socket/SocketProvider";
+import { useSocketContext, useSocketSelector } from "../context/socket/SocketProvider";
 import { ErrorMessage } from "./ErrorMessage";
 import { formatAmount, formatUsd } from "../utils/format";
 import { formatPrice } from "../utils/marketStats";
@@ -16,16 +16,19 @@ const TOAST_LIFETIME_MS = 5000;
 const TOAST_EXIT_MS = 300;
 
 export function TradePanel({ token }: TradePanelProps) {
-	const { trade, state } = useSocketContext();
+	const { trade } = useSocketContext();
+	const tokenPrice = useSocketSelector((s) => s.prices[token]?.price);
+	const balanceRaw = useSocketSelector((s) => s.balance);
+	const position = useSocketSelector((s) => s.openPositions[token]);
+	const lastError = useSocketSelector((s) => s.lastError);
 	const [side, setSide] = useState<"buy" | "sell">("buy");
 	const [percent, setPercent] = useState(0);
 	const [pending, setPending] = useState(false);
 	const [executed, setExecuted] = useState<TradeConfirm[]>([]);
 	const [manualAmount, setManualAmount] = useState<string | null>(null);
 
-	const price = state.prices[token]?.price ?? null;
-	const balance = Number(state.balance);
-	const position = state.openPositions[token];
+	const price = tokenPrice ?? null;
+	const balance = Number(balanceRaw);
 	const heldQty = position ? Number(position.quantity) : 0;
 
 	const maxQuantity = useMemo(() => {
@@ -144,7 +147,7 @@ export function TradePanel({ token }: TradePanelProps) {
 					)}
 				</div>
 
-				{state.lastError && <ErrorMessage error={state.lastError} />}
+				{lastError && <ErrorMessage error={lastError} />}
 
 				<div className="flex flex-col gap-2">
 					<label

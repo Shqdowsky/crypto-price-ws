@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { ROOMS } from "@crypto-price-ws/shared";
-import { useSocketContext } from "../context/socket/SocketProvider";
+import { useSocketSelector } from "../context/socket/SocketProvider";
 import type { ConnectionStatus } from "../context/socket/socketReducer";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Sparkline } from "../components/Sparkline";
@@ -56,7 +56,11 @@ function Skeleton({ className }: { className: string }) {
 }
 
 export function Dashboard() {
-	const { state } = useSocketContext();
+	const connectionStatus = useSocketSelector((s) => s.connectionStatus);
+	const balance = useSocketSelector((s) => s.balance);
+	const lastError = useSocketSelector((s) => s.lastError);
+	const prices = useSocketSelector((s) => s.prices);
+	const priceHistory = useSocketSelector((s) => s.priceHistory);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -68,15 +72,15 @@ export function Dashboard() {
 					<p className="text-muted">Live prices streamed in real time. Select a token to trade.</p>
 				</div>
 				<div className="flex items-center gap-3">
-					<StatusPill status={state.connectionStatus} />
+					<StatusPill status={connectionStatus} />
 					<div className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-surface px-3.5 text-sm">
 						<span className="text-muted">Balance</span>
-						<span className="font-semibold tabular-nums">{formatUsd(state.balance)}</span>
+						<span className="font-semibold tabular-nums">{formatUsd(balance)}</span>
 					</div>
 				</div>
 			</header>
 
-			{state.lastError && <ErrorMessage error={state.lastError.message} />}
+			{lastError && <ErrorMessage error={lastError.message} />}
 
 			<section aria-labelledby="markets-heading">
 				<h2 id="markets-heading" className="sr-only">
@@ -108,8 +112,8 @@ export function Dashboard() {
 						</thead>
 						<tbody>
 							{ROOM_OPTIONS.map((room, index) => {
-								const price = state.prices[room];
-								const history = state.priceHistory[room];
+								const price = prices[room];
+								const history = priceHistory[room];
 								const change = price ? price.PDChange : null;
 								const changeColor =
 									change === null || Math.abs(change) < 0.005
