@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { RoomName } from "@crypto-price-ws/shared";
 import { useSocketSelector } from "../context/socket/SocketProvider";
+import { selectTokenClosedPositions, selectTokenTrades } from "../context/socket/socketReducer";
 import { Pagination } from "./Pagination";
 import { formatPrice } from "../utils/marketStats";
 import { clampPage, pageCount, pageSlice } from "../utils/pagination";
@@ -32,9 +33,8 @@ export function TradeHistoryPanel({ token }: TradeHistoryPanelProps) {
 	const [pages, setPages] = useState<Pages>({ token, trades: 1, closed: 1 });
 	const current: Pages = pages.token === token ? pages : { token, trades: 1, closed: 1 };
 
-	// `?? []` stays outside the selector: a fresh [] inside it would re-render on every dispatch.
-	const trades = useSocketSelector((s) => s.trades[token]) ?? [];
-	const closedPositions = useSocketSelector((s) => s.closedPositions[token]) ?? [];
+	const trades = useSocketSelector((s) => selectTokenTrades(s, token));
+	const closedPositions = useSocketSelector((s) => selectTokenClosedPositions(s, token));
 
 	const tradesPage = clampPage(current.trades, trades.length);
 	const closedPage = clampPage(current.closed, closedPositions.length);

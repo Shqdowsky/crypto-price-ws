@@ -8,6 +8,7 @@ import {
 } from "@crypto-price-ws/shared";
 import { env } from "../config/env";
 import { useSocketSelector } from "../context/socket/SocketProvider";
+import { selectPrice, selectTokenPriceHistory } from "../context/socket/socketReducer";
 import type { PricePoint } from "../context/socket/socketReducer";
 import { applyTick } from "../utils/chart";
 import { authFetch } from "../utils/authFetch";
@@ -150,8 +151,8 @@ export function useCandleWindow(token: RoomName, intervalSec: number) {
 	const ctrlRef = useRef<AbortController | null>(null);
 	const inflight = useRef({ older: false, newer: false });
 
-	const payload = useSocketSelector((s) => s.prices[token]);
-	const history = useSocketSelector((s) => s.priceHistory[token]);
+	const payload = useSocketSelector((s) => selectPrice(s, token));
+	const history = useSocketSelector((s) => selectTokenPriceHistory(s, token));
 
 	// Layout effect: it must run before child passive effects (PriceChart's load trigger),
 	// otherwise the first load() after "init" reads the stale ref and silently returns.
@@ -160,7 +161,6 @@ export function useCandleWindow(token: RoomName, intervalSec: number) {
 		ticksRef.current = history ?? [];
 	});
 
-	// Initial load. Cleanup aborts in-flight requests, so stale responses are dropped.
 	useEffect(() => {
 		const ctrl = new AbortController();
 		ctrlRef.current = ctrl;

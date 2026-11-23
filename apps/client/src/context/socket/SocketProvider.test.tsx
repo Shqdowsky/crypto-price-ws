@@ -207,15 +207,6 @@ describe("SocketProvider", () => {
 			1,
 		],
 		[
-			"fetchHistory",
-			[],
-			CLIENT_EVENTS.HISTORY,
-			[],
-			{ trades: [{ id: 1 }] },
-			(s: State) => s.tradeHistory.length,
-			1,
-		],
-		[
 			"getAccountState",
 			[],
 			CLIENT_EVENTS.GET_ACCOUNT_STATE,

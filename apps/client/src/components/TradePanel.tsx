@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RoomName, TradeConfirm } from "@crypto-price-ws/shared";
 import { useSocketContext, useSocketSelector } from "../context/socket/SocketProvider";
+import {
+	selectBalance,
+	selectLastError,
+	selectOpenPosition,
+	selectPrice,
+} from "../context/socket/socketReducer";
 import { ErrorMessage } from "./ErrorMessage";
 import { formatAmount, formatUsd } from "../utils/format";
 import { formatPrice } from "../utils/marketStats";
@@ -17,10 +23,10 @@ const TOAST_EXIT_MS = 300;
 
 export function TradePanel({ token }: TradePanelProps) {
 	const { trade } = useSocketContext();
-	const tokenPrice = useSocketSelector((s) => s.prices[token]?.price);
-	const balanceRaw = useSocketSelector((s) => s.balance);
-	const position = useSocketSelector((s) => s.openPositions[token]);
-	const lastError = useSocketSelector((s) => s.lastError);
+	const tokenPrice = useSocketSelector((s) => selectPrice(s, token)?.price);
+	const balanceRaw = useSocketSelector(selectBalance);
+	const position = useSocketSelector((s) => selectOpenPosition(s, token));
+	const lastError = useSocketSelector(selectLastError);
 	const [side, setSide] = useState<"buy" | "sell">("buy");
 	const [percent, setPercent] = useState(0);
 	const [pending, setPending] = useState(false);
@@ -241,7 +247,6 @@ export function TradePanel({ token }: TradePanelProps) {
 	);
 }
 
-/** One executed-order card. Slides in from the right, auto-dismisses, and can be closed by hand. */
 function ExecutionToast({
 	order,
 	onRemove,

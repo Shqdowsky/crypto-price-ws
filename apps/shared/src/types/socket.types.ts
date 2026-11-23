@@ -98,7 +98,6 @@ export interface ServerToClientEvents {
 	[SERVER_EVENTS.PRICE_CURRENT]: (payload: TokenPayload) => void;
 	[SERVER_EVENTS.TRADE_CONFIRM]: (payload: TradeConfirm) => void;
 	[SERVER_EVENTS.BALANCE_UPDATED]: (payload: BalanceUpdate) => void;
-	[SERVER_EVENTS.HISTORY_RESULT]: (payload: { trades: TradeRow[] }) => void;
 	[SERVER_EVENTS.ERROR]: (payload: ErrorResponse) => void;
 	[SERVER_EVENTS.ACCOUNT_STATE]: (payload: AccountState) => void;
 	[SERVER_EVENTS.FUNDING_REVIEWED]: (payload: FundingReviewed) => void;
@@ -109,7 +108,6 @@ export interface ClientToServerEvents {
 		room: RoomName,
 		callback: (res: AckResponse<TokenPayload>) => void,
 	) => void;
-	[CLIENT_EVENTS.HISTORY]: (callback: (res: AckResponse<{ trades: TradeRow[] }>) => void) => void;
 	[CLIENT_EVENTS.TRADE]: (
 		payload: { token: RoomName; side: "buy" | "sell"; quantity: number | "all" },
 		callback: (res: AckResponse<TradeConfirm>) => void,
