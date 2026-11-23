@@ -2,7 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { ROOMS } from "@crypto-price-ws/shared";
 import { useSocketSelector } from "../context/socket/SocketProvider";
-import type { ConnectionStatus } from "../context/socket/socketReducer";
+import {
+	selectBalance,
+	selectLastError,
+	selectPriceHistory,
+	selectPrices,
+	type ConnectionStatus,
+} from "../context/socket/socketReducer";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Sparkline } from "../components/Sparkline";
 import { formatUsd } from "../utils/format";
@@ -31,7 +37,6 @@ function StatusPill({ status }: { status: ConnectionStatus }) {
 	);
 }
 
-/** Price that briefly flashes green/red whenever it ticks up or down. */
 function PriceCell({ price }: { price: number }) {
 	const [prev, setPrev] = useState(price);
 	const [direction, setDirection] = useState<"up" | "down" | null>(null);
@@ -57,10 +62,10 @@ function Skeleton({ className }: { className: string }) {
 
 export function Dashboard() {
 	const connectionStatus = useSocketSelector((s) => s.connectionStatus);
-	const balance = useSocketSelector((s) => s.balance);
-	const lastError = useSocketSelector((s) => s.lastError);
-	const prices = useSocketSelector((s) => s.prices);
-	const priceHistory = useSocketSelector((s) => s.priceHistory);
+	const balance = useSocketSelector(selectBalance);
+	const lastError = useSocketSelector(selectLastError);
+	const prices = useSocketSelector(selectPrices);
+	const priceHistory = useSocketSelector(selectPriceHistory);
 
 	return (
 		<div className="flex flex-col gap-6">

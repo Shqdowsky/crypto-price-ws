@@ -1,7 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
 	TokenPayload,
-	TradeRow,
 	TradeConfirm,
 	RoomName,
 	ErrorResponse,
@@ -24,7 +23,6 @@ export interface SocketState {
 	prices: Partial<Record<RoomName, TokenPayload>>;
 	priceHistory: Partial<Record<RoomName, PricePoint[]>>;
 	trades: Partial<Record<RoomName, TradeHistoryEntry[]>>;
-	tradeHistory: TradeRow[];
 	balance: string;
 	openPositions: Partial<Record<RoomName, Position>>;
 	closedPositions: Partial<Record<RoomName, Position[]>>;
@@ -37,7 +35,6 @@ export const initialSocketState: SocketState = {
 	prices: {},
 	priceHistory: {},
 	trades: {},
-	tradeHistory: [],
 	balance: "0.00",
 	openPositions: {},
 	closedPositions: {},
@@ -75,9 +72,27 @@ function recordPrice(state: SocketState, payload: TokenPayload) {
 	state.prices[token] = payload;
 }
 
+// Shared fallback so per-token selectors return a stable reference when nothing is loaded yet.
+const EMPTY = Object.freeze([]) as never[];
+
 const socketSlice = createSlice({
 	name: "socket",
 	initialState: initialSocketState,
+	selectors: {
+		selectBalance: (state) => state.balance,
+		selectLastError: (state) => state.lastError,
+		selectPrices: (state) => state.prices,
+		selectPriceHistory: (state) => state.priceHistory,
+		selectOpenPositions: (state) => state.openPositions,
+		selectClosedPositions: (state) => state.closedPositions,
+		selectPrice: (state, token: RoomName) => state.prices[token],
+		selectTokenPriceHistory: (state, token: RoomName) => state.priceHistory[token],
+		selectOpenPosition: (state, token: RoomName) => state.openPositions[token],
+		selectTokenClosedPositions: (state, token: RoomName): Position[] =>
+			state.closedPositions[token] ?? EMPTY,
+		selectTokenTrades: (state, token: RoomName): TradeHistoryEntry[] =>
+			state.trades[token] ?? EMPTY,
+	},
 	reducers: {
 		connecting(state) {
 			state.connectionStatus = "connecting";
@@ -92,7 +107,6 @@ const socketSlice = createSlice({
 			state.connectionStatus = "disconnected";
 		},
 
-		// Live ticks and ack'd "current price" replies are handled identically.
 		priceUpdate(state, action: PayloadAction<TokenPayload>) {
 			recordPrice(state, action.payload);
 		},
@@ -116,10 +130,6 @@ const socketSlice = createSlice({
 			}
 
 			state.lastError = null;
-		},
-
-		historyResult(state, action: PayloadAction<{ trades: TradeRow[] }>) {
-			state.tradeHistory = action.payload.trades;
 		},
 
 		accountState(state, action: PayloadAction<AccountState>) {
@@ -175,3 +185,17 @@ const socketSlice = createSlice({
 
 export const socketActions = socketSlice.actions;
 export const socketReducer = socketSlice.reducer;
+
+export const {
+	selectBalance,
+	selectLastError,
+	selectPrices,
+	selectPriceHistory,
+	selectOpenPositions,
+	selectClosedPositions,
+	selectPrice,
+	selectTokenPriceHistory,
+	selectOpenPosition,
+	selectTokenClosedPositions,
+	selectTokenTrades,
+} = socketSlice.getSelectors();

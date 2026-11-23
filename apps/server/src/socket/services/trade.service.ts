@@ -281,17 +281,6 @@ export async function getPositionHistory(userId: number, token: RoomName): Promi
 	return result.rows.map(toPositionDTO);
 }
 
-export async function getTradesByUserId(userId: number): Promise<TradeRow[]> {
-	const result = await pool.query<TradeRow>(
-		`SELECT id, token, side, price, quantity, created_at
-        FROM trades
-        WHERE user_id = $1
-        ORDER BY created_at DESC`,
-		[userId],
-	);
-	return result.rows;
-}
-
 export async function getTokenTradeHistory(
 	userId: number,
 	token: RoomName,

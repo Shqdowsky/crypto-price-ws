@@ -5,11 +5,19 @@ import type {
 	TokenPayload,
 	TradeConfirm,
 	TradeHistoryEntry,
-	TradeRow,
 } from "@crypto-price-ws/shared";
 import {
 	initialSocketState,
 	socketActions as a,
+	selectBalance,
+	selectLastError,
+	selectOpenPosition,
+	selectOpenPositions,
+	selectPrice,
+	selectPrices,
+	selectTokenClosedPositions,
+	selectTokenPriceHistory,
+	selectTokenTrades,
 	socketReducer,
 	type SocketState,
 } from "./socketReducer";
@@ -432,13 +440,6 @@ describe("tradeHistoryResult (trade merging)", () => {
 		expect(after.trades.eth).toHaveLength(1);
 		expect(after.trades.btc).toHaveLength(1);
 	});
-
-	it("historyResult stores the all-token history as-is", () => {
-		const trades = [{ id: 1 }, { id: 2 }] as unknown as TradeRow[];
-		const after = socketReducer(stateWith(), a.historyResult({ trades }));
-
-		expect(after.tradeHistory).toBe(trades);
-	});
 });
 
 describe("errors and rate limiting", () => {
@@ -474,5 +475,41 @@ describe("unknown actions", () => {
 		const next = socketReducer(state, { type: "NOT_A_REAL_ACTION" });
 
 		expect(next).toBe(state);
+	});
+});
+
+describe("selectors", () => {
+	it("plain selectors return the stored references", () => {
+		const prices = { btc: makePrice("btc", 100, 1) };
+		const openPositions = { btc: makePosition() };
+		const state = stateWith({ balance: "42.00", prices, openPositions });
+
+		expect(selectBalance(state)).toBe("42.00");
+		expect(selectPrices(state)).toBe(prices);
+		expect(selectOpenPositions(state)).toBe(openPositions);
+		expect(selectLastError(state)).toBeNull();
+	});
+
+	it("per-token selectors pick the token's entry", () => {
+		const price = makePrice("btc", 100, 1);
+		const position = makePosition();
+		const state = stateWith({
+			prices: { btc: price },
+			openPositions: { btc: position },
+			priceHistory: { btc: [{ price: 100, timestamp: 1 }] },
+		});
+
+		expect(selectPrice(state, "btc")).toBe(price);
+		expect(selectPrice(state, "eth")).toBeUndefined();
+		expect(selectOpenPosition(state, "btc")).toBe(position);
+		expect(selectTokenPriceHistory(state, "btc")).toEqual([{ price: 100, timestamp: 1 }]);
+	});
+
+	it("trades and closed positions fall back to one stable empty array", () => {
+		const state = stateWith();
+
+		expect(selectTokenTrades(state, "btc")).toEqual([]);
+		expect(selectTokenTrades(state, "btc")).toBe(selectTokenTrades(state, "eth"));
+		expect(selectTokenClosedPositions(state, "btc")).toBe(selectTokenTrades(state, "btc"));
 	});
 });

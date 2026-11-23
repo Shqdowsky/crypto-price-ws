@@ -1,6 +1,12 @@
 import { Link } from "react-router";
 import type { Position, RoomName } from "@crypto-price-ws/shared";
 import { useSocketSelector } from "../context/socket/SocketProvider";
+import {
+	selectBalance,
+	selectClosedPositions,
+	selectOpenPositions,
+	selectPrices,
+} from "../context/socket/socketReducer";
 import { formatAmount, formatSignedUsd, formatUsd } from "../utils/format";
 
 function toneClass(value: number | null): string {
@@ -18,10 +24,10 @@ function StatCard({ label, value, tone = "" }: { label: string; value: string; t
 }
 
 export function AccountPage() {
-	const balance = useSocketSelector((s) => s.balance);
-	const openPositions = useSocketSelector((s) => s.openPositions);
-	const prices = useSocketSelector((s) => s.prices);
-	const closedPositions = useSocketSelector((s) => s.closedPositions);
+	const balance = useSocketSelector(selectBalance);
+	const openPositions = useSocketSelector(selectOpenPositions);
+	const prices = useSocketSelector(selectPrices);
+	const closedPositions = useSocketSelector(selectClosedPositions);
 
 	const usdtBalance = Number(balance);
 

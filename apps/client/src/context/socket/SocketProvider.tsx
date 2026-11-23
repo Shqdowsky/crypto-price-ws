@@ -30,7 +30,6 @@ interface SocketContextValue {
 		side: "buy" | "sell",
 		quantity: number | "all",
 	) => Promise<TradeConfirm | null>;
-	fetchHistory: () => void;
 	getAccountState: () => void;
 	getPositionHistory: (token: RoomName) => void;
 	getTradeHistory: (token: RoomName) => void;
@@ -128,9 +127,6 @@ function SocketBridge({ children }: { children: React.ReactNode }) {
 		socket.on(SERVER_EVENTS.TRADE_CONFIRM, (payload) =>
 			dispatch(socketActions.tradeConfirm(payload)),
 		);
-		socket.on(SERVER_EVENTS.HISTORY_RESULT, (payload) =>
-			dispatch(socketActions.historyResult(payload)),
-		);
 		socket.on(SERVER_EVENTS.BALANCE_UPDATED, (payload) =>
 			dispatch(socketActions.balanceUpdated(payload.balance)),
 		);
@@ -184,14 +180,6 @@ function SocketBridge({ children }: { children: React.ReactNode }) {
 		[dispatch, request],
 	);
 
-	const fetchHistory = useCallback(() => {
-		void request(
-			(s) => s.emitWithAck(CLIENT_EVENTS.HISTORY),
-			"Server did not respond to history request",
-			socketActions.historyResult,
-		);
-	}, [request]);
-
 	const getAccountState = useCallback(() => {
 		void request(
 			(s) => s.emitWithAck(CLIENT_EVENTS.GET_ACCOUNT_STATE),
@@ -227,7 +215,6 @@ function SocketBridge({ children }: { children: React.ReactNode }) {
 			value={{
 				getPrice,
 				trade,
-				fetchHistory,
 				getAccountState,
 				getPositionHistory,
 				getTradeHistory,
@@ -250,8 +237,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 	);
 }
 
-// Subscribes to a slice of the socket state; re-renders only when the selected value changes.
-// Return existing references (e.g. `s.prices[token]`), not freshly built objects or arrays.
 // eslint-disable-next-line react-refresh/only-export-components
 export function useSocketSelector<T>(selector: (state: SocketState) => T): T {
 	return useSelector((root: RootState) => selector(root.socket));
